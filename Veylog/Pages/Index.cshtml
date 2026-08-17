@@ -23,34 +23,25 @@
 
     <div class="row mb-4">
 
-        <div class="col-md-4">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h6 class="text-muted">Total Requests</h6>
-                    <h2>@Model.TotalRequests</h2>
-                </div>
-            </div>
-        </div>
+        @{
+            ViewBag.Title = "Total Requests";
+            ViewBag.Value = Model.TotalRequests;
+        }
+        @await Html.PartialAsync("Shared/Components/StatCard")
 
-        <div class="col-md-4">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h6 class="text-muted">Errors</h6>
-                    <h2 class="text-danger">@Model.Errors</h2>
-                </div>
-            </div>
-        </div>
+        @{
+            ViewBag.Title = "Errors";
+            ViewBag.Value = Model.Errors;
+            ViewBag.TextClass = "text-danger";
+        }
+        @await Html.PartialAsync("Shared/Components/StatCard")
 
-        <div class="col-md-4">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h6 class="text-muted">Success</h6>
-                    <h2 class="text-success">
-                        @(Model.TotalRequests - Model.Errors)
-                    </h2>
-                </div>
-            </div>
-        </div>
+        @{
+            ViewBag.Title = "Success";
+            ViewBag.Value = Model.TotalRequests - Model.Errors;
+            ViewBag.TextClass = "text-success";
+        }
+        @await Html.PartialAsync("Shared/Components/StatCard")
 
     </div>
 
@@ -77,46 +68,8 @@
 
                     @foreach (var log in Model.Logs)
                     {
-                        <tr>
-                            <td>
-                                @log.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")
-                            </td>
-
-                            <td>
-                                <span class="badge bg-dark">
-                                    @log.HttpMethod
-                                </span>
-                            </td>
-
-                            <td>
-                                @log.Path
-                            </td>
-
-                            <td>
-                                @if (log.StatusCode >= 500)
-                                {
-                                    <span class="badge bg-danger">
-                                        @log.StatusCode
-                                    </span>
-                                }
-                                else if (log.StatusCode >= 400)
-                                {
-                                    <span class="badge bg-warning text-dark">
-                                        @log.StatusCode
-                                    </span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-success">
-                                        @log.StatusCode
-                                    </span>
-                                }
-                            </td>
-
-                            <td>
-                                @log.ElapsedMilliseconds ms
-                            </td>
-                        </tr>
+                        ViewBag.Log = log;
+                        @await Html.PartialAsync("Shared/Components/ApiLogRow")
                     }
 
                 </tbody>

@@ -5,20 +5,32 @@ using Veylog.Models;
 
 namespace Veylog.Pages;
 
+/// <summary>
+/// Dashboard page model displaying key metrics and recent API logs.
+/// </summary>
 public class IndexModel : PageModel
 {
     private readonly LogDbContext _db;
+    private const int RecentLogsCount = 20;
 
     public IndexModel(LogDbContext db)
     {
         _db = db;
     }
 
+    // =========================================================
+    // Results
+    // =========================================================
+
     public int TotalRequests { get; set; }
 
     public int Errors { get; set; }
 
-    public List<ApiLog> Logs { get; set; } = new List<ApiLog>();
+    public List<ApiLog> Logs { get; set; } = new();
+
+    // =========================================================
+    // Page Load
+    // =========================================================
 
     public async Task OnGetAsync()
     {
@@ -29,7 +41,7 @@ public class IndexModel : PageModel
 
         Logs = await _db.ApiLogs
             .OrderByDescending(x => x.CreatedAt)
-            .Take(20)
+            .Take(RecentLogsCount)
             .ToListAsync();
     }
 }

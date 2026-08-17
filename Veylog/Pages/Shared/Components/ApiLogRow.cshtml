@@ -1,0 +1,35 @@
+@using Veylog.Models
+
+@{
+    var log = (ApiLog)ViewBag.Log;
+}
+
+<tr>
+    <td>
+        @log.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")
+    </td>
+
+    <td>
+        <span class="badge bg-dark">
+            @log.HttpMethod
+        </span>
+    </td>
+
+    <td>
+        @log.Path
+    </td>
+
+    <td>
+        @{
+            var badgeClass = log.StatusCode >= 500 ? "bg-danger" :
+                           log.StatusCode >= 400 ? "bg-warning text-dark" : "bg-success";
+        }
+        <span class="badge @badgeClass">
+            @log.StatusCode
+        </span>
+    </td>
+
+    <td>
+        @log.ElapsedMilliseconds ms
+    </td>
+</tr>

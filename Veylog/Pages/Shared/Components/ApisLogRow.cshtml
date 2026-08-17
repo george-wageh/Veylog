@@ -1,0 +1,54 @@
+@using Veylog.Models
+
+@{
+    var log = (ApiLog)ViewBag.Log;
+}
+
+<tr>
+    <td>
+        @log.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")
+    </td>
+
+    <td>
+        <span class="badge bg-dark">
+            @log.HttpMethod
+        </span>
+    </td>
+
+    <td>
+        <strong>@log.Path</strong>
+
+        @if (!string.IsNullOrEmpty(log.QueryString))
+        {
+            <div class="small text-muted">
+                @log.QueryString
+            </div>
+        }
+    </td>
+
+    <td>
+        @{
+            var badgeClass = log.StatusCode >= 500 ? "bg-danger" :
+                           log.StatusCode >= 400 ? "bg-warning text-dark" : "bg-success";
+        }
+        <span class="badge @badgeClass">
+            @log.StatusCode
+        </span>
+    </td>
+
+    <td>
+        @log.ElapsedMilliseconds ms
+    </td>
+
+    <td>
+        <code>
+            @(log.TraceId.Length > 12 ? log.TraceId[..12] + "..." : log.TraceId)
+        </code>
+    </td>
+
+    <td>
+        <a class="btn btn-sm btn-primary" href="/veylog/apis/@log.Id">
+            Details
+        </a>
+    </td>
+</tr>

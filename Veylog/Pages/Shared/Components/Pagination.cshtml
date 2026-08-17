@@ -1,0 +1,84 @@
+@{
+    var pageNumber = (int)ViewBag.PageNumber;
+    var totalPages = (int)ViewBag.TotalPages;
+    var routeValues = (Dictionary<string, object>)ViewBag.RouteValues ?? new();
+}
+
+@if (totalPages > 1)
+{
+    <div class="card-footer">
+
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+
+            <div class="text-muted small">
+                Page <strong>@pageNumber</strong> of <strong>@totalPages</strong>
+            </div>
+
+            <nav aria-label="Pagination">
+
+                <ul class="pagination mb-0">
+
+                    <!-- First -->
+                    <li class="page-item @(pageNumber <= 1 ? "disabled" : "")">
+                        @if (pageNumber > 1)
+                        {
+                            <a class="page-link" asp-page="@(string.IsNullOrEmpty((string?)ViewBag.PageName) ? "" : ViewBag.PageName)" asp-all-route-data="routeValues" asp-route-pageNumber="1">
+                                First
+                            </a>
+                        }
+                        else
+                        {
+                            <span class="page-link">First</span>
+                        }
+                    </li>
+
+                    <!-- Previous -->
+                    <li class="page-item @(pageNumber <= 1 ? "disabled" : "")">
+                        @if (pageNumber > 1)
+                        {
+                            <a class="page-link" asp-page="@(string.IsNullOrEmpty((string?)ViewBag.PageName) ? "" : ViewBag.PageName)" asp-all-route-data="routeValues" asp-route-pageNumber="@(pageNumber - 1)">
+                                Previous
+                            </a>
+                        }
+                        else
+                        {
+                            <span class="page-link">Previous</span>
+                        }
+                    </li>
+
+                    <!-- Next -->
+                    <li class="page-item @(pageNumber >= totalPages ? "disabled" : "")">
+                        @if (pageNumber < totalPages)
+                        {
+                            <a class="page-link" asp-page="@(string.IsNullOrEmpty((string?)ViewBag.PageName) ? "" : ViewBag.PageName)" asp-all-route-data="routeValues" asp-route-pageNumber="@(pageNumber + 1)">
+                                Next
+                            </a>
+                        }
+                        else
+                        {
+                            <span class="page-link">Next</span>
+                        }
+                    </li>
+
+                    <!-- Last -->
+                    <li class="page-item @(pageNumber >= totalPages ? "disabled" : "")">
+                        @if (pageNumber < totalPages)
+                        {
+                            <a class="page-link" asp-page="@(string.IsNullOrEmpty((string?)ViewBag.PageName) ? "" : ViewBag.PageName)" asp-all-route-data="routeValues" asp-route-pageNumber="@totalPages">
+                                Last
+                            </a>
+                        }
+                        else
+                        {
+                            <span class="page-link">Last</span>
+                        }
+                    </li>
+
+                </ul>
+
+            </nav>
+
+        </div>
+
+    </div>
+}

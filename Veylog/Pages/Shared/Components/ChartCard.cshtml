@@ -1,0 +1,42 @@
+@{
+    var chartId = (string)ViewBag.ChartId ?? "chart";
+    var title = (string)ViewBag.Title ?? "Chart";
+    var subtitle = (string?)ViewBag.Subtitle;
+}
+
+<div class="card border mb-4">
+
+    <div class="card-header">
+
+        <div class="d-flex justify-content-between align-items-center">
+
+            <div>
+
+                <h5 class="mb-1">
+                    @title
+                </h5>
+
+                @if (!string.IsNullOrEmpty(subtitle))
+                {
+                    <div class="text-muted small">
+                        @subtitle
+                    </div>
+                }
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="card-body">
+
+        @RenderBody()
+
+        <div style="height: 350px; position: relative;">
+            <canvas id="@chartId"></canvas>
+        </div>
+
+    </div>
+
+</div>

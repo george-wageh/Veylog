@@ -2,9 +2,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Veylog.Models;
+using Veylog.Services;
 
 namespace Veylog.Pages;
 
+/// <summary>
+/// Page model for displaying API logs with advanced filtering and pagination.
+/// </summary>
 public class ApisModel : PageModel
 {
     private readonly LogDbContext _db;
@@ -13,6 +17,10 @@ public class ApisModel : PageModel
     {
         _db = db;
     }
+
+    // =========================================================
+    // Filters
+    // =========================================================
 
     [BindProperty(SupportsGet = true)]
     public DateTime? From { get; set; }
@@ -32,14 +40,24 @@ public class ApisModel : PageModel
     [BindProperty(SupportsGet = true)]
     public string? ResponseBody { get; set; }
 
-    // Multiple HTTP methods
     [BindProperty(SupportsGet = true)]
     public List<string> Methods { get; set; } = new();
 
-    // Multiple status codes
-    // Example: 404,401,500
     [BindProperty(SupportsGet = true)]
     public string? StatusCodes { get; set; }
+
+    // =========================================================
+    // Pagination
+    // =========================================================
+
+    [BindProperty(SupportsGet = true)]
+    public int PageNumber { get; set; } = 1;
+
+    public const int PageSize = 25;
+
+    // =========================================================
+    // Results
+    // =========================================================
 
     public List<string> AvailableMethods { get; } = new()
     {
@@ -52,135 +70,52 @@ public class ApisModel : PageModel
         "OPTIONS"
     };
 
-    [BindProperty(SupportsGet = true)]
-    public int PageNumber { get; set; } = 1;
-
-    public const int PageSize = 25;
-
     public int TotalPages { get; set; }
 
     public int TotalRecords { get; set; }
 
-    // Number of different APIs inside filtered result
     public int TotalApis { get; set; }
 
     public List<ApiLog> Logs { get; set; } = new();
 
+    // =========================================================
+    // Page Load
+    // =========================================================
+
     public async Task OnGetAsync()
     {
-        if (PageNumber < 1)
-            PageNumber = 1;
+        PageNumber = PaginationService.ValidatePageNumber(PageNumber, int.MaxValue);
 
-        // Normalize selected methods
-        Methods = Methods
-            .Where(x => !string.IsNullOrWhiteSpace(x))
-            .Select(x => x.Trim().ToUpperInvariant())
-            .Distinct()
-            .ToList();
+        // Normalize methods
+        Methods = ApiLogFilterService.NormalizeMethods(Methods);
 
-        IQueryable<ApiLog> query = _db.ApiLogs
-            .AsNoTracking();
+        // Build base query
+        IQueryable<ApiLog> query = _db.ApiLogs.AsNoTracking();
 
-        // Date From
-        if (From.HasValue)
+        // Apply filters
+        var filterCriteria = new ApiLogFilterService.FilterCriteria
         {
-            query = query.Where(x =>
-                x.CreatedAt >= From.Value);
-        }
+            FromDate = From,
+            ToDate = To,
+            Api = Api,
+            Methods = Methods,
+            StatusCodes = StatusCodes,
+            RequestBody = RequestBody,
+            ResponseBody = ResponseBody,
+            Search = Search
+        };
 
-        // Date To
-        if (To.HasValue)
-        {
-            query = query.Where(x =>
-                x.CreatedAt <= To.Value);
-        }
+        query = ApiLogFilterService.ApplyFilters(query, filterCriteria);
 
-        // API / Path search
-        if (!string.IsNullOrWhiteSpace(Api))
-        {
-            query = query.Where(x =>
-                x.Path.Contains(Api));
-        }
-
-        // HTTP Method multi-select
-        if (Methods.Count > 0)
-        {
-            query = query.Where(x =>
-                Methods.Contains(x.HttpMethod));
-        }
-
-        // Status Codes multi-search
-        // Example:
-        // 404
-        // 404,401
-        // 404,401,500
-        if (!string.IsNullOrWhiteSpace(StatusCodes))
-        {
-            var statusCodes = StatusCodes
-                .Split(
-                    ',',
-                    StringSplitOptions.RemoveEmptyEntries |
-                    StringSplitOptions.TrimEntries)
-                .Where(x => int.TryParse(x, out _))
-                .Select(int.Parse)
-                .Distinct()
-                .ToList();
-
-            if (statusCodes.Count > 0)
-            {
-                query = query.Where(x =>
-                    statusCodes.Contains(x.StatusCode));
-            }
-        }
-
-        // Request body
-        if (!string.IsNullOrWhiteSpace(RequestBody))
-        {
-            query = query.Where(x =>
-                x.RequestBody != null &&
-                x.RequestBody.Contains(RequestBody));
-        }
-
-        // Response body
-        if (!string.IsNullOrWhiteSpace(ResponseBody))
-        {
-            query = query.Where(x =>
-                x.ResponseBody != null &&
-                x.ResponseBody.Contains(ResponseBody));
-        }
-
-        // General search:
-        // Path OR RequestBody OR ResponseBody
-        if (!string.IsNullOrWhiteSpace(Search))
-        {
-            query = query.Where(x =>
-                x.Path.Contains(Search) ||
-                (x.RequestBody != null &&
-                 x.RequestBody.Contains(Search)) ||
-                (x.ResponseBody != null &&
-                 x.ResponseBody.Contains(Search)));
-        }
-
-        // Total requests after filtering
+        // Count totals
         TotalRecords = await query.CountAsync();
+        TotalApis = await query.Select(x => x.Path).Distinct().CountAsync();
 
-        // Total different APIs after filtering
-        TotalApis = await query
-            .Select(x => x.Path)
-            .Distinct()
-            .CountAsync();
+        // Calculate pagination
+        TotalPages = PaginationService.CalculateTotalPages(TotalRecords, PageSize);
+        PageNumber = PaginationService.ValidatePageNumber(PageNumber, TotalPages);
 
-        // Calculate total pages
-        TotalPages = (int)Math.Ceiling(
-            TotalRecords / (double)PageSize);
-
-        // If requested page is greater than last page
-        if (TotalPages > 0 && PageNumber > TotalPages)
-        {
-            PageNumber = TotalPages;
-        }
-
-        // No results
+        // Return empty if no results
         if (TotalPages == 0)
         {
             PageNumber = 1;
@@ -191,7 +126,7 @@ public class ApisModel : PageModel
         // Get current page
         Logs = await query
             .OrderByDescending(x => x.CreatedAt)
-            .Skip((PageNumber - 1) * PageSize)
+            .Skip(PaginationService.CalculateSkip(PageNumber, PageSize))
             .Take(PageSize)
             .ToListAsync();
     }

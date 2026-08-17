@@ -1,0 +1,19 @@
+@{
+    var sortBy = (string)ViewBag.SortBy ?? "frequency";
+    var sortOptions = new[] {
+        new { value = "frequency", label = "Most Frequent" },
+        new { value = "average", label = "Average Response Time" },
+        new { value = "min", label = "Minimum Response Time" },
+        new { value = "max", label = "Maximum Response Time" },
+        new { value = "path", label = "API Path" }
+    };
+}
+
+<select class="form-select" name="SortBy">
+    @foreach (var option in sortOptions)
+    {
+        <option value="@option.value" selected="@(sortBy == option.value)">
+            @option.label
+        </option>
+    }
+</select>

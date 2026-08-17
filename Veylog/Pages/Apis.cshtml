@@ -91,29 +91,21 @@
 
                     </div>
 
+                    <!-- HTTP Method (modern pill-style multi-select, no Ctrl needed) -->
                     <div class="col-md-3">
 
-                        <label class="form-label">
+                        <label class="form-label d-block">
                             HTTP Method
                         </label>
 
-                        <select class="form-select"
-                                name="Methods"
-                                multiple
-                                size="4">
-
+                        <div class="d-flex flex-wrap gap-2">
                             @foreach (var method in Model.AvailableMethods)
                             {
-                                <option value="@method"
-                                        selected="@(Model.Methods.Contains(method, StringComparer.OrdinalIgnoreCase))">
-                                    @method
-                                </option>
+                                var isChecked = Model.Methods.Contains(method, StringComparer.OrdinalIgnoreCase);
+                                <input type="checkbox" class="btn-check" name="Methods" value="@method"
+                                       id="method_@method" autocomplete="off" checked="@(isChecked ? "checked" : null)" />
+                                <label class="btn btn-outline-primary btn-sm rounded-pill px-3" for="method_@method">@method</label>
                             }
-
-                        </select>
-
-                        <div class="form-text">
-                            Hold Ctrl (Windows) or Command (Mac) to select multiple methods.
                         </div>
 
                     </div>
@@ -237,98 +229,16 @@
                     @if (!Model.Logs.Any())
                     {
                         <tr>
-
-                            <td colspan="7"
-                                class="text-center text-muted py-5">
-
+                            <td colspan="7" class="text-center text-muted py-5">
                                 No API requests found.
-
                             </td>
-
                         </tr>
                     }
 
                     @foreach (var log in Model.Logs)
                     {
-                        <tr>
-
-                            <td>
-                                @log.CreatedAt.ToString(
-                                    "yyyy-MM-dd HH:mm:ss")
-                            </td>
-
-                            <td>
-
-                                <span class="badge bg-dark">
-                                    @log.HttpMethod
-                                </span>
-
-                            </td>
-
-                            <td>
-
-                                <strong>
-                                    @log.Path
-                                </strong>
-
-                                @if (!string.IsNullOrEmpty(log.QueryString))
-                                {
-                                    <div class="small text-muted">
-                                        @log.QueryString
-                                    </div>
-                                }
-
-                            </td>
-
-                            <td>
-
-                                @if (log.StatusCode >= 500)
-                                {
-                                    <span class="badge bg-danger">
-                                        @log.StatusCode
-                                    </span>
-                                }
-                                else if (log.StatusCode >= 400)
-                                {
-                                    <span class="badge bg-warning text-dark">
-                                        @log.StatusCode
-                                    </span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-success">
-                                        @log.StatusCode
-                                    </span>
-                                }
-
-                            </td>
-
-                            <td>
-                                @log.ElapsedMilliseconds ms
-                            </td>
-
-                            <td>
-
-                                <code>
-                                    @(log.TraceId.Length > 12
-                                        ? log.TraceId[..12] + "..."
-                                        : log.TraceId)
-                                </code>
-
-                            </td>
-
-                            <td>
-
-                                <a class="btn btn-sm btn-primary"
-                                   href="/veylog/apis/@log.Id">
-
-                                    Details
-
-                                </a>
-
-                            </td>
-
-                        </tr>
+                        ViewBag.Log = log;
+                        @await Html.PartialAsync("Shared/Components/ApisLogRow")
                     }
 
                 </tbody>

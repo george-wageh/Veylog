@@ -1,0 +1,31 @@
+@{
+    var label = (string)ViewBag.Label ?? "Metric";
+    var value = ViewBag.Value;
+    var unit = (string?)ViewBag.Unit ?? "";
+    var textClass = (string?)ViewBag.TextClass ?? "text-dark";
+    var actionUrl = (string?)ViewBag.ActionUrl;
+    var actionText = (string?)ViewBag.ActionText ?? "View";
+}
+
+<div class="col-md-3">
+
+    <div class="border rounded p-3 h-100">
+
+        <div class="text-muted small">
+            @label
+        </div>
+
+        <div class="fs-4 fw-bold @textClass">
+            @value @unit
+        </div>
+
+        @if (!string.IsNullOrEmpty(actionUrl))
+        {
+            <a href="@actionUrl" class="btn btn-sm btn-outline-primary mt-2">
+                @actionText
+            </a>
+        }
+
+    </div>
+
+</div>

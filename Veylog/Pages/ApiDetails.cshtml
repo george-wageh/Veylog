@@ -66,26 +66,10 @@
                     <strong>Status</strong>
 
                     <div>
-
-                        @if (Model.ApiLog.StatusCode >= 500)
-                        {
-                            <span class="badge bg-danger">
-                                @Model.ApiLog.StatusCode
-                            </span>
+                        @{
+                            ViewBag.StatusCode = Model.ApiLog.StatusCode;
                         }
-                        else if (Model.ApiLog.StatusCode >= 400)
-                        {
-                            <span class="badge bg-warning text-dark">
-                                @Model.ApiLog.StatusCode
-                            </span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-success">
-                                @Model.ApiLog.StatusCode
-                            </span>
-                        }
-
+                        @await Html.PartialAsync("Shared/Components/StatusBadge")
                     </div>
 
                 </div>

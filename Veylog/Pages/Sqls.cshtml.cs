@@ -1,23 +1,33 @@
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Veylog.Models;
+using Veylog.Services;
 
 namespace Veylog.Pages;
 
+/// <summary>
+/// Page model for displaying SQL query logs grouped by trace ID with pagination.
+/// </summary>
 public class SqlsModel : PageModel
 {
     private readonly LogDbContext _db;
+    private const int PageSize = 20;
 
     public SqlsModel(LogDbContext db)
     {
         _db = db;
     }
 
-    [BindProperty(SupportsGet = true)]
+    // =========================================================
+    // Pagination
+    // =========================================================
+
+    [Microsoft.AspNetCore.Mvc.BindProperty(SupportsGet = true)]
     public int PageNumber { get; set; } = 1;
 
-    public const int PageSize = 20;
+    // =========================================================
+    // Results
+    // =========================================================
 
     public int TotalGroups { get; set; }
 
@@ -25,11 +35,15 @@ public class SqlsModel : PageModel
 
     public List<SqlTraceGroup> Groups { get; set; } = new();
 
+    // =========================================================
+    // Page Load
+    // =========================================================
+
     public async Task OnGetAsync()
     {
-        if (PageNumber < 1)
-            PageNumber = 1;
+        PageNumber = PaginationService.ValidatePageNumber(PageNumber, int.MaxValue);
 
+        // Build grouped query
         var groupedQuery = _db.SqlLogs
             .AsNoTracking()
             .GroupBy(x => x.TraceId)
@@ -43,14 +57,14 @@ public class SqlsModel : PageModel
                 HasError = g.Any(x => !x.IsSuccess)
             });
 
+        // Count total groups
         TotalGroups = await groupedQuery.CountAsync();
 
-        TotalPages = (int)Math.Ceiling(
-            TotalGroups / (double)PageSize);
+        // Calculate pagination
+        TotalPages = PaginationService.CalculateTotalPages(TotalGroups, PageSize);
+        PageNumber = PaginationService.ValidatePageNumber(PageNumber, TotalPages);
 
-        if (TotalPages > 0 && PageNumber > TotalPages)
-            PageNumber = TotalPages;
-
+        // Return empty if no results
         if (TotalPages == 0)
         {
             PageNumber = 1;
@@ -58,12 +72,23 @@ public class SqlsModel : PageModel
             return;
         }
 
+        // Get current page of groups
         Groups = await groupedQuery
             .OrderByDescending(x => x.LastCreatedAt)
-            .Skip((PageNumber - 1) * PageSize)
+            .Skip(PaginationService.CalculateSkip(PageNumber, PageSize))
             .Take(PageSize)
             .ToListAsync();
 
+        // Load SQL logs for each group
+        await LoadSqlLogsForGroupsAsync();
+    }
+
+    // =========================================================
+    // Load SQL Logs
+    // =========================================================
+
+    private async Task LoadSqlLogsForGroupsAsync()
+    {
         var traceIds = Groups
             .Select(x => x.TraceId)
             .Where(x => x != null)
@@ -86,20 +111,18 @@ public class SqlsModel : PageModel
         }
     }
 
+    // =========================================================
+    // SQL Trace Group
+    // =========================================================
+
     public class SqlTraceGroup
     {
         public string? TraceId { get; set; }
-
         public int Count { get; set; }
-
         public DateTime FirstCreatedAt { get; set; }
-
         public DateTime LastCreatedAt { get; set; }
-
         public long TotalDuration { get; set; }
-
         public bool HasError { get; set; }
-
         public List<SqlLog> Logs { get; set; } = new();
     }
 }

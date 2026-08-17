@@ -1,0 +1,9 @@
+@{
+    var statusCode = (int)ViewBag.StatusCode;
+    var badgeClass = statusCode >= 500 ? "bg-danger" :
+                     statusCode >= 400 ? "bg-warning text-dark" : "bg-success";
+}
+
+<span class="badge @badgeClass">
+    @statusCode
+</span>
