@@ -24,6 +24,31 @@ namespace Veylog.Middleware
             HttpContext context,
             LogDbContext db)
         {
+            // Skip Veylog requests
+            if (context.Request.Path.Value?.Contains(
+                    "veylog",
+                    StringComparison.OrdinalIgnoreCase) == true)
+            {
+                await _next(context);
+                return;
+            }
+
+            var isCorsPreflight =
+                context.Request.Method.Equals(
+                    "OPTIONS",
+                    StringComparison.OrdinalIgnoreCase)
+                &&
+                context.Request.Headers.TryGetValue(
+                    "Access-Control-Request-Method",
+                    out var requestedMethod)
+                &&
+                !string.IsNullOrWhiteSpace(requestedMethod);
+            if (isCorsPreflight)
+            {
+                await _next(context);
+                return;
+            }
+
             var stopwatch = Stopwatch.StartNew();
 
             var traceId = Activity.Current?.TraceId.ToString()
@@ -121,7 +146,7 @@ namespace Veylog.Middleware
 
                         IpAddress = context.Connection.RemoteIpAddress?.ToString(),
 
-                        StatusCode = context.Response.StatusCode,
+                        StatusCode = exception != null ? 500 : context.Response.StatusCode,
 
                         ElapsedMilliseconds = stopwatch.ElapsedMilliseconds,
 

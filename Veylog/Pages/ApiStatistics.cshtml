@@ -1,0 +1,1433 @@
+@page "/veylog/api-statistics"
+@model Veylog.Pages.ApiStatisticsModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+@using System.Text.Json
+
+@{
+    ViewData["Title"] = "API Statistics";
+}
+
+<div class="container-fluid">
+
+    <!-- ===================================================== -->
+    <!-- Header -->
+    <!-- ===================================================== -->
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+
+        <div>
+            <h1 class="mb-1">
+                API Statistics
+            </h1>
+
+            <div class="text-muted">
+                Performance statistics for API requests
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+
+            <a href="/veylog/apis"
+               class="btn btn-outline-primary">
+                API Requests
+            </a>
+
+            <a href="/veylog"
+               class="btn btn-secondary">
+                Dashboard
+            </a>
+
+        </div>
+
+    </div>
+
+
+    <!-- ===================================================== -->
+    <!-- Filters -->
+    <!-- ===================================================== -->
+
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-header">
+            Search / Filters
+        </div>
+
+        <div class="card-body">
+
+            <form method="get">
+
+                <div class="row g-3">
+
+                    <!-- API / Path -->
+
+                    <div class="col-md-3">
+
+                        <label class="form-label">
+                            API / Path
+                        </label>
+
+                        <input type="text"
+                               class="form-control"
+                               name="Api"
+                               value="@Model.Api"
+                               placeholder="/api/users" />
+
+                    </div>
+
+
+                    <!-- Sort By -->
+
+                    <div class="col-md-3">
+
+                        <label class="form-label">
+                            Sort By
+                        </label>
+
+                        <select class="form-select"
+                                name="SortBy">
+
+                            <option value="frequency"
+                                    selected="@(Model.SortBy == "frequency")">
+                                Most Frequent
+                            </option>
+
+                            <option value="average"
+                                    selected="@(Model.SortBy == "average")">
+                                Average Response Time
+                            </option>
+
+                            <option value="min"
+                                    selected="@(Model.SortBy == "min")">
+                                Minimum Response Time
+                            </option>
+
+                            <option value="max"
+                                    selected="@(Model.SortBy == "max")">
+                                Maximum Response Time
+                            </option>
+
+                            <option value="path"
+                                    selected="@(Model.SortBy == "path")">
+                                API Path
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- HTTP Methods -->
+
+                    <div class="col-md-3">
+
+                        <label class="form-label">
+                            HTTP Method
+                        </label>
+
+                        <select class="form-select"
+                                name="Methods"
+                                multiple
+                                size="4">
+
+                            @foreach (var method in Model.AvailableMethods)
+                            {
+                                <option value="@method"
+                                        selected="@(Model.Methods.Contains(
+                                                                                    method,
+                                                                                    StringComparer.OrdinalIgnoreCase))">
+
+                                    @method
+
+                                </option>
+                            }
+
+                        </select>
+
+                        <div class="form-text">
+                            Hold Ctrl (Windows) or Command (Mac)
+                            to select multiple methods.
+                        </div>
+
+                    </div>
+
+
+                    <!-- Status Codes -->
+
+                    <div class="col-md-3">
+
+                        <label class="form-label">
+                            Status Codes
+                        </label>
+
+                        <input type="text"
+                               class="form-control"
+                               name="StatusCodes"
+                               value="@Model.StatusCodes"
+                               placeholder="404, 401, 500" />
+
+                        <div class="form-text">
+                            Enter multiple status codes separated by commas.
+                        </div>
+
+                    </div>
+
+
+                    <!-- Search -->
+
+                    <div class="col-md-4">
+
+                        <label class="form-label">
+                            Search
+                        </label>
+
+                        <input type="text"
+                               class="form-control"
+                               name="Search"
+                               value="@Model.Search"
+                               placeholder="Path, request or response..." />
+
+                    </div>
+
+
+                    <!-- Request Body -->
+
+                    <div class="col-md-4">
+
+                        <label class="form-label">
+                            Request Body
+                        </label>
+
+                        <input type="text"
+                               class="form-control"
+                               name="RequestBody"
+                               value="@Model.RequestBody"
+                               placeholder="Search request body..." />
+
+                    </div>
+
+
+                    <!-- Response Body -->
+
+                    <div class="col-md-4">
+
+                        <label class="form-label">
+                            Response Body
+                        </label>
+
+                        <input type="text"
+                               class="form-control"
+                               name="ResponseBody"
+                               value="@Model.ResponseBody"
+                               placeholder="Search response body..." />
+
+                    </div>
+
+
+                    <!-- Daily From -->
+
+                    <div class="col-md-2">
+
+                        <label class="form-label">
+                            Daily From
+                        </label>
+
+                        <input type="date"
+                               class="form-control"
+                               name="DailyFrom"
+                               value="@Model.DailyFrom?.ToString("yyyy-MM-dd")" />
+
+                    </div>
+
+
+                    <!-- Daily To -->
+
+                    <div class="col-md-2">
+
+                        <label class="form-label">
+                            Daily To
+                        </label>
+
+                        <input type="date"
+                               class="form-control"
+                               name="DailyTo"
+                               value="@Model.DailyTo?.ToString("yyyy-MM-dd")" />
+
+                    </div>
+
+
+                    <!-- Monthly Year -->
+
+                    <div class="col-md-2">
+
+                        <label class="form-label">
+                            Monthly Year
+                        </label>
+
+                        <select class="form-select"
+                                name="MonthlyYear">
+
+                            @foreach (var year in Model.AvailableYears)
+                            {
+                                <option value="@year"
+                                        selected="@(Model.MonthlyYear == year)">
+
+                                    @year
+
+                                </option>
+                            }
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- Buttons -->
+
+                    <div class="col-12 d-flex align-items-end gap-2">
+
+                        <button type="submit"
+                                class="btn btn-primary">
+
+                            Search
+
+                        </button>
+
+                        <a href="/veylog/api-statistics"
+                           class="btn btn-outline-secondary">
+
+                            Clear
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <!-- ===================================================== -->
+    <!-- Result Summary -->
+    <!-- ===================================================== -->
+
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-body">
+
+            <div class="row g-3">
+
+                <!-- APIs -->
+
+                <div class="col-md-4">
+
+                    <div class="border rounded p-3">
+
+                        <div class="text-muted small">
+                            APIs
+                        </div>
+
+                        <div class="fs-3 fw-bold">
+                            @Model.TotalApis
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Requests -->
+
+                <div class="col-md-4">
+
+                    <div class="border rounded p-3">
+
+                        <div class="text-muted small">
+                            Requests
+                        </div>
+
+                        <div class="fs-3 fw-bold">
+                            @Model.TotalRecords
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Current Sort -->
+
+                <div class="col-md-4">
+
+                    <div class="border rounded p-3">
+
+                        <div class="text-muted small">
+                            Sorted By
+                        </div>
+
+                        <div class="fs-5 fw-bold">
+
+                            @switch (Model.SortBy)
+                            {
+                                case "frequency":
+                                <span>Most Frequent</span>
+                                break;
+
+                                case "average":
+                                <span>Average Response Time</span>
+                                break;
+
+                                case "min":
+                                <span>Minimum Response Time</span>
+                                break;
+
+                                case "max":
+                                <span>Maximum Response Time</span>
+                                break;
+
+                                case "path":
+                                <span>API Path</span>
+                                break;
+
+                                default:
+                                <span>Most Frequent</span>
+                                break;
+                            }
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ===================================================== -->
+    <!-- No Results -->
+    <!-- ===================================================== -->
+    @if (!Model.Statistics.Any())
+    {
+        <div class="card shadow-sm">
+
+            <div class="card-body text-center text-muted py-5">
+
+                <div class="fs-4 mb-2">
+                    No API statistics found.
+                </div>
+
+                <div>
+                    Try changing your filters.
+                </div>
+
+            </div>
+
+        </div>
+    }
+
+
+    <!-- ===================================================== -->
+    <!-- API Statistics -->
+    <!-- ===================================================== -->
+    @for (var i = 0; i < Model.Statistics.Count; i++)
+    {
+        var api = Model.Statistics[i];
+
+        var isFirst = i == 0;
+
+        <details class="card shadow-sm mb-4"
+            @(Model.Statistics.Count == 1 || isFirst ? "open" : null)>
+
+            <!-- ================================================= -->
+            <!-- API Header -->
+            <!-- ================================================= -->
+
+            <summary class="card-header"
+                     style="cursor: pointer;">
+
+                <div class="d-flex justify-content-between align-items-center">
+
+                    <div class="d-flex align-items-center gap-3">
+
+                        <span class="fw-bold fs-5">
+                            @api.Path
+                        </span>
+
+                        <span class="badge bg-dark">
+                            @api.TotalRequests requests
+                        </span>
+
+                    </div>
+
+
+                    <div class="d-flex gap-3 text-muted">
+
+                        <span>
+                            Min:
+                            <strong>
+                                @api.Overall.Min ms
+                            </strong>
+                        </span>
+
+                        <span>
+                            Avg:
+                            <strong>
+                                @api.Overall.Average.ToString("0.##") ms
+                            </strong>
+                        </span>
+
+                        <span>
+                            Max:
+                            <strong>
+                                @api.Overall.Max ms
+                            </strong>
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </summary>
+
+
+            <!-- ================================================= -->
+            <!-- API Body -->
+            <!-- ================================================= -->
+
+            <div class="card-body">
+
+
+                <!-- ============================================= -->
+                <!-- Overall -->
+                <!-- ============================================= -->
+
+                <div class="mb-4">
+
+                    <h5 class="mb-3">
+                        Overall
+                    </h5>
+
+                    <div class="row g-3">
+
+                        <!-- Requests -->
+
+                        <div class="col-md-3">
+
+                            <div class="border rounded p-3 h-100">
+
+                                <div class="text-muted small">
+                                    Requests
+                                </div>
+
+                                <div class="fs-4 fw-bold">
+                                    @api.Overall.Count
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- Minimum -->
+
+                        <div class="col-md-3">
+
+                            <div class="border rounded p-3 h-100">
+
+                                <div class="text-muted small">
+                                    Minimum
+                                </div>
+
+                                <div class="fs-4 fw-bold text-success">
+                                    @api.Overall.Min ms
+                                </div>
+
+                                @if (api.Overall.MinId.HasValue)
+                                {
+                                    <a href="@($"/veylog/apis/{api.Overall.MinId.Value}")"
+                                       class="btn btn-sm btn-outline-success mt-2">
+
+                                        View Min Request
+
+                                    </a>
+                                }
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- Average -->
+
+                        <div class="col-md-3">
+
+                            <div class="border rounded p-3 h-100">
+
+                                <div class="text-muted small">
+                                    Average
+                                </div>
+
+                                <div class="fs-4 fw-bold text-primary">
+                                    @api.Overall.Average.ToString("0.##") ms
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- Maximum -->
+
+                        <div class="col-md-3">
+
+                            <div class="border rounded p-3 h-100">
+
+                                <div class="text-muted small">
+                                    Maximum
+                                </div>
+
+                                <div class="fs-4 fw-bold text-danger">
+                                    @api.Overall.Max ms
+                                </div>
+
+                                @if (api.Overall.MaxId.HasValue)
+                                {
+                                    <a href="@($"/veylog/apis/{api.Overall.MaxId.Value}")"
+                                       class="btn btn-sm btn-outline-danger mt-2">
+
+                                        View Max Request
+
+                                    </a>
+                                }
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ============================================= -->
+                <!-- Daily -->
+                <!-- ============================================= -->
+
+                <div class="card border mb-4">
+
+                    <div class="card-header">
+
+                        <div class="d-flex justify-content-between align-items-center">
+
+                            <div>
+
+                                <h5 class="mb-1">
+                                    Daily
+                                </h5>
+
+                                <div class="text-muted small">
+
+                                    @Model.DailyFrom?.ToString("yyyy-MM-dd")
+
+                                    →
+
+                                    @Model.DailyTo?.ToString("yyyy-MM-dd")
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="card-body">
+
+                        @{
+                            var dailyRows = api.Daily
+                                .Where(x => x.Count > 0)
+                                .ToList();
+
+                            var dailyMinPoint = dailyRows
+                                .OrderBy(x => x.Min)
+                                .FirstOrDefault();
+
+                            var dailyMaxPoint = dailyRows
+                                .OrderByDescending(x => x.Max)
+                                .FirstOrDefault();
+                        }
+
+
+                        <div class="row g-3 mb-4">
+
+                            <!-- Minimum -->
+
+                            <div class="col-md-4">
+
+                                <div class="border rounded p-3 h-100">
+
+                                    <div class="text-muted small">
+                                        Minimum
+                                    </div>
+
+                                    <div class="fw-bold fs-5 text-success">
+
+                                        @(dailyMinPoint != null
+                                            ? dailyMinPoint.Min + " ms"
+                                            : "N/A")
+
+                                    </div>
+
+                                    @if (dailyMinPoint?.MinId.HasValue == true)
+                                    {
+                                        <a href="@($"/veylog/apis/{dailyMinPoint.MinId.Value}")"
+                                           class="btn btn-sm btn-outline-success mt-2">
+
+                                            View Min Request
+
+                                        </a>
+                                    }
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- Average -->
+
+                            <div class="col-md-4">
+
+                                <div class="border rounded p-3 h-100">
+
+                                    <div class="text-muted small">
+                                        Average
+                                    </div>
+
+                                    <div class="fw-bold fs-5 text-primary">
+
+                                        @(dailyRows.Any()
+                                            ? dailyRows
+                                                .Average(x => x.Average)
+                                                .ToString("0.##") + " ms"
+                                            : "N/A")
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- Maximum -->
+
+                            <div class="col-md-4">
+
+                                <div class="border rounded p-3 h-100">
+
+                                    <div class="text-muted small">
+                                        Maximum
+                                    </div>
+
+                                    <div class="fw-bold fs-5 text-danger">
+
+                                        @(dailyMaxPoint != null
+                                            ? dailyMaxPoint.Max + " ms"
+                                            : "N/A")
+
+                                    </div>
+
+                                    @if (dailyMaxPoint?.MaxId.HasValue == true)
+                                    {
+                                        <a href="@($"/veylog/apis/{dailyMaxPoint.MaxId.Value}")"
+                                           class="btn btn-sm btn-outline-danger mt-2">
+
+                                            View Max Request
+
+                                        </a>
+                                    }
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- Daily Chart -->
+
+                        <div style="height: 350px; position: relative;">
+
+                            <canvas id="dailyChart_@i"></canvas>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ============================================= -->
+                <!-- Monthly -->
+                <!-- ============================================= -->
+
+                <div class="card border mb-4">
+
+                    <div class="card-header">
+
+                        <h5 class="mb-1">
+                            Monthly
+                        </h5>
+
+                        <div class="text-muted small">
+                            Year @Model.MonthlyYear
+                        </div>
+
+                    </div>
+
+
+                    <div class="card-body">
+
+                        @{
+                            var monthlyRows = api.Monthly
+                                .Where(x => x.Count > 0)
+                                .ToList();
+
+                            var monthlyMinPoint = monthlyRows
+                                .OrderBy(x => x.Min)
+                                .FirstOrDefault();
+
+                            var monthlyMaxPoint = monthlyRows
+                                .OrderByDescending(x => x.Max)
+                                .FirstOrDefault();
+                        }
+
+
+                        <div class="row g-3 mb-4">
+
+                            <!-- Minimum -->
+
+                            <div class="col-md-4">
+
+                                <div class="border rounded p-3 h-100">
+
+                                    <div class="text-muted small">
+                                        Minimum
+                                    </div>
+
+                                    <div class="fw-bold fs-5 text-success">
+
+                                        @(monthlyMinPoint != null
+                                            ? monthlyMinPoint.Min + " ms"
+                                            : "N/A")
+
+                                    </div>
+
+                                    @if (monthlyMinPoint?.MinId.HasValue == true)
+                                    {
+                                        <a href="@($"/veylog/apis/{monthlyMinPoint.MinId.Value}")"
+                                           class="btn btn-sm btn-outline-success mt-2">
+
+                                            View Min Request
+
+                                        </a>
+                                    }
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- Average -->
+
+                            <div class="col-md-4">
+
+                                <div class="border rounded p-3 h-100">
+
+                                    <div class="text-muted small">
+                                        Average
+                                    </div>
+
+                                    <div class="fw-bold fs-5 text-primary">
+
+                                        @(monthlyRows.Any()
+                                            ? monthlyRows
+                                                .Average(x => x.Average)
+                                                .ToString("0.##") + " ms"
+                                            : "N/A")
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- Maximum -->
+
+                            <div class="col-md-4">
+
+                                <div class="border rounded p-3 h-100">
+
+                                    <div class="text-muted small">
+                                        Maximum
+                                    </div>
+
+                                    <div class="fw-bold fs-5 text-danger">
+
+                                        @(monthlyMaxPoint != null
+                                            ? monthlyMaxPoint.Max + " ms"
+                                            : "N/A")
+
+                                    </div>
+
+                                    @if (monthlyMaxPoint?.MaxId.HasValue == true)
+                                    {
+                                        <a href="@($"/veylog/apis/{monthlyMaxPoint.MaxId.Value}")"
+                                           class="btn btn-sm btn-outline-danger mt-2">
+
+                                            View Max Request
+
+                                        </a>
+                                    }
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- Monthly Chart -->
+
+                        <div style="height: 350px; position: relative;">
+
+                            <canvas id="monthlyChart_@i"></canvas>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ============================================= -->
+                <!-- Yearly -->
+                <!-- ============================================= -->
+
+                <div class="card border">
+
+                    <div class="card-header">
+
+                        <h5 class="mb-1">
+                            Yearly
+                        </h5>
+
+                        <div class="text-muted small">
+                            All available years
+                        </div>
+
+                    </div>
+
+
+                    <div class="card-body">
+
+                        @{
+                            var yearlyRows = api.Yearly
+                                .Where(x => x.Count > 0)
+                                .ToList();
+
+                            var yearlyMinPoint = yearlyRows
+                                .OrderBy(x => x.Min)
+                                .FirstOrDefault();
+
+                            var yearlyMaxPoint = yearlyRows
+                                .OrderByDescending(x => x.Max)
+                                .FirstOrDefault();
+                        }
+
+
+                        <div class="row g-3 mb-4">
+
+                            <!-- Minimum -->
+
+                            <div class="col-md-4">
+
+                                <div class="border rounded p-3 h-100">
+
+                                    <div class="text-muted small">
+                                        Minimum
+                                    </div>
+
+                                    <div class="fw-bold fs-5 text-success">
+
+                                        @(yearlyMinPoint != null
+                                            ? yearlyMinPoint.Min + " ms"
+                                            : "N/A")
+
+                                    </div>
+
+                                    @if (yearlyMinPoint?.MinId.HasValue == true)
+                                    {
+                                        <a href="@($"/veylog/apis/{yearlyMinPoint.MinId.Value}")"
+                                           class="btn btn-sm btn-outline-success mt-2">
+
+                                            View Min Request
+
+                                        </a>
+                                    }
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- Average -->
+
+                            <div class="col-md-4">
+
+                                <div class="border rounded p-3 h-100">
+
+                                    <div class="text-muted small">
+                                        Average
+                                    </div>
+
+                                    <div class="fw-bold fs-5 text-primary">
+
+                                        @(yearlyRows.Any()
+                                            ? yearlyRows
+                                                .Average(x => x.Average)
+                                                .ToString("0.##") + " ms"
+                                            : "N/A")
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+
+                            <!-- Maximum -->
+
+                            <div class="col-md-4">
+
+                                <div class="border rounded p-3 h-100">
+
+                                    <div class="text-muted small">
+                                        Maximum
+                                    </div>
+
+                                    <div class="fw-bold fs-5 text-danger">
+
+                                        @(yearlyMaxPoint != null
+                                            ? yearlyMaxPoint.Max + " ms"
+                                            : "N/A")
+
+                                    </div>
+
+                                    @if (yearlyMaxPoint?.MaxId.HasValue == true)
+                                    {
+                                        <a href="@($"/veylog/apis/{yearlyMaxPoint.MaxId.Value}")"
+                                           class="btn btn-sm btn-outline-danger mt-2">
+
+                                            View Max Request
+
+                                        </a>
+                                    }
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- Yearly Chart -->
+
+                        <div style="height: 350px; position: relative;">
+
+                            <canvas id="yearlyChart_@i"></canvas>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </details>
+    }
+
+</div>
+
+
+<!-- ========================================================= -->
+<!-- Chart.js -->
+<!-- ========================================================= -->
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+
+    const chartInstances = {};
+
+
+    // =========================================================
+    // Create Statistics Chart
+    // =========================================================
+
+    function createStatisticsChart(
+    canvasId,
+    data,
+    title) {
+
+    const canvas = document.getElementById(canvasId);
+
+    if (!canvas) {
+    return;
+    }
+
+
+    // Destroy previous chart if exists
+
+    if (chartInstances[canvasId]) {
+
+    chartInstances[canvasId].destroy();
+
+    delete chartInstances[canvasId];
+    }
+
+
+    // Safety
+
+    if (!Array.isArray(data)) {
+    data = [];
+    }
+
+
+    // Labels
+
+    const labels = data.map(function (x) {
+    return x.label;
+    });
+
+
+    // Min
+
+    const minData = data.map(function (x) {
+    return Number(x.min ?? 0);
+    });
+
+
+    // Average
+
+    const avgData = data.map(function (x) {
+
+    const value = Number(x.average ?? 0);
+
+    return Number(value.toFixed(2));
+    });
+
+
+    // Max
+
+    const maxData = data.map(function (x) {
+    return Number(x.max ?? 0);
+    });
+
+
+    // Create Chart
+
+    chartInstances[canvasId] =
+    new Chart(canvas, {
+
+    type: 'line',
+
+    data: {
+
+    labels: labels,
+
+    datasets: [
+
+    {
+    label: 'Min',
+
+    data: minData,
+
+    borderColor: '#198754',
+
+    backgroundColor:
+    'rgba(25, 135, 84, 0.08)',
+
+    borderWidth: 2,
+
+    pointRadius: 3,
+
+    pointHoverRadius: 5,
+
+    tension: 0.25,
+
+    fill: false
+    },
+
+
+    {
+    label: 'Average',
+
+    data: avgData,
+
+    borderColor: '#0d6efd',
+
+    backgroundColor:
+    'rgba(13, 110, 253, 0.08)',
+
+    borderWidth: 3,
+
+    pointRadius: 4,
+
+    pointHoverRadius: 6,
+
+    tension: 0.25,
+
+    fill: false
+    },
+
+
+    {
+    label: 'Max',
+
+    data: maxData,
+
+    borderColor: '#dc3545',
+
+    backgroundColor:
+    'rgba(220, 53, 69, 0.08)',
+
+    borderWidth: 2,
+
+    pointRadius: 3,
+
+    pointHoverRadius: 5,
+
+    tension: 0.25,
+
+    fill: false
+    }
+
+    ]
+
+    },
+
+
+    options: {
+
+    responsive: true,
+
+    maintainAspectRatio: false,
+
+
+    interaction: {
+
+    mode: 'index',
+
+    intersect: false
+
+    },
+
+
+    plugins: {
+
+    title: {
+
+    display: true,
+
+    text: title
+
+    },
+
+
+    legend: {
+
+    position: 'top'
+
+    },
+
+
+    tooltip: {
+
+    callbacks: {
+
+    label: function (context) {
+
+    return context.dataset.label
+    + ': '
+    + context.parsed.y
+    + ' ms';
+
+    }
+
+    }
+
+    }
+
+    },
+
+
+    scales: {
+
+    y: {
+
+    beginAtZero: true,
+
+    title: {
+
+    display: true,
+
+    text: 'Time (ms)'
+
+    }
+
+    },
+
+
+    x: {
+
+    title: {
+
+    display: true,
+
+    text: 'Period'
+
+    }
+
+    }
+
+    }
+
+    }
+
+    });
+
+    }
+
+
+    // =========================================================
+    // Initialize Charts
+    // =========================================================
+
+    function initializeCharts() {
+
+    @for (var i = 0; i < Model.Statistics.Count; i++)
+    {
+        var api = Model.Statistics[i];
+
+        <text>
+
+            createStatisticsChart(
+            'dailyChart_@i',
+            @Html.Raw(Model.ToJson(api.Daily)),
+            'Daily API Response Time'
+            );
+
+
+            createStatisticsChart(
+            'monthlyChart_@i',
+            @Html.Raw(Model.ToJson(api.Monthly)),
+            'Monthly API Response Time'
+            );
+
+
+            createStatisticsChart(
+            'yearlyChart_@i',
+            @Html.Raw(Model.ToJson(api.Yearly)),
+            'Yearly API Response Time'
+            );
+
+        </text>
+    }
+
+    }
+
+
+    // =========================================================
+    // DOM Ready
+    // =========================================================
+
+    document.addEventListener(
+    'DOMContentLoaded',
+    function () {
+
+    initializeCharts();
+
+    }
+    );
+
+
+    // =========================================================
+    // Re-render charts when <details> opens
+    // =========================================================
+
+    document
+    .querySelectorAll('details')
+    .forEach(function (details) {
+
+    details.addEventListener(
+    'toggle',
+    function () {
+
+    if (!details.open) {
+    return;
+    }
+
+
+    setTimeout(
+    function () {
+
+    @for (var i = 0; i < Model.Statistics.Count; i++)
+    {
+        var api = Model.Statistics[i];
+
+        <text>
+
+            createStatisticsChart(
+            'dailyChart_@i',
+            @Html.Raw(Model.ToJson(api.Daily)),
+            'Daily API Response Time'
+            );
+
+
+            createStatisticsChart(
+            'monthlyChart_@i',
+            @Html.Raw(Model.ToJson(api.Monthly)),
+            'Monthly API Response Time'
+            );
+
+
+            createStatisticsChart(
+            'yearlyChart_@i',
+            @Html.Raw(Model.ToJson(api.Yearly)),
+            'Yearly API Response Time'
+            );
+
+        </text>
+    }
+
+    },
+    50
+    );
+
+    }
+    );
+
+    });
+
+</script>

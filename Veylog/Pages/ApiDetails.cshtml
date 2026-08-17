@@ -1,0 +1,353 @@
+@page "/veylog/apis/{id:long}"
+@model Veylog.Pages.ApiDetailsModel
+
+@{
+    ViewData["Title"] = "API Details";
+}
+
+<div class="container-fluid">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+
+        <div>
+            <h1>API Request</h1>
+
+            <div class="text-muted">
+                @Model.ApiLog!.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")
+            </div>
+        </div>
+
+        <a href="/veylog/apis"
+           class="btn btn-secondary">
+            Back to APIs
+        </a>
+
+    </div>
+
+
+    <!-- API Information -->
+
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-header">
+            Request Information
+        </div>
+
+        <div class="card-body">
+
+            <div class="row g-3">
+
+                <div class="col-md-2">
+
+                    <strong>Method</strong>
+
+                    <div>
+                        <span class="badge bg-dark">
+                            @Model.ApiLog.HttpMethod
+                        </span>
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <strong>Path</strong>
+
+                    <div>
+                        @Model.ApiLog.Path
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-2">
+
+                    <strong>Status</strong>
+
+                    <div>
+
+                        @if (Model.ApiLog.StatusCode >= 500)
+                        {
+                            <span class="badge bg-danger">
+                                @Model.ApiLog.StatusCode
+                            </span>
+                        }
+                        else if (Model.ApiLog.StatusCode >= 400)
+                        {
+                            <span class="badge bg-warning text-dark">
+                                @Model.ApiLog.StatusCode
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-success">
+                                @Model.ApiLog.StatusCode
+                            </span>
+                        }
+
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-2">
+
+                    <strong>Duration</strong>
+
+                    <div>
+                        @Model.ApiLog.ElapsedMilliseconds ms
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-2">
+
+                    <strong>Trace ID</strong>
+
+                    <div>
+                        <code>
+                            @Model.ApiLog.TraceId
+                        </code>
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <strong>User ID</strong>
+
+                    <div>
+                        @(Model.ApiLog.UserId ?? "-")
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <strong>IP Address</strong>
+
+                    <div>
+                        @(Model.ApiLog.IpAddress ?? "-")
+                    </div>
+
+                </div>
+
+
+                <div class="col-md-4">
+
+                    <strong>Query String</strong>
+
+                    <div>
+                        @(Model.ApiLog.QueryString ?? "-")
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- Request Body -->
+
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-header">
+            Request Body
+        </div>
+
+        <div class="card-body p-0">
+
+            @if (string.IsNullOrWhiteSpace(Model.ApiLog.RequestBody))
+            {
+                <div class="p-3 text-muted">
+                    No request body.
+                </div>
+            }
+            else
+            {
+                <pre class="m-0 p-3 bg-dark text-light"
+                     style="max-height:500px;overflow:auto;white-space:pre-wrap;">@Model.ApiLog.RequestBody</pre>
+            }
+
+        </div>
+
+    </div>
+
+
+    <!-- Response Body -->
+
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-header">
+            Response Body
+        </div>
+
+        <div class="card-body p-0">
+
+            @if (string.IsNullOrWhiteSpace(Model.ApiLog.ResponseBody))
+            {
+                <div class="p-3 text-muted">
+                    No response body.
+                </div>
+            }
+            else
+            {
+                <pre class="m-0 p-3 bg-dark text-light"
+                     style="max-height:500px;overflow:auto;white-space:pre-wrap;">@Model.ApiLog.ResponseBody</pre>
+            }
+
+        </div>
+
+    </div>
+
+
+    <!-- Exception -->
+    @if (!string.IsNullOrWhiteSpace(Model.ApiLog.Exception))
+    {
+        <div class="card shadow-sm border-danger mb-4">
+
+            <div class="card-header text-danger">
+                Exception
+            </div>
+
+            <div class="card-body p-0">
+
+                <pre class="m-0 p-3 bg-dark text-danger"
+                     style="max-height:500px;overflow:auto;white-space:pre-wrap;">@Model.ApiLog.Exception</pre>
+
+            </div>
+
+        </div>
+    }
+
+
+    <!-- SQL -->
+
+    <div class="card shadow-sm">
+
+        <div class="card-header d-flex justify-content-between">
+
+            <span>
+                SQL Calls
+            </span>
+
+            <span class="badge bg-secondary">
+                @Model.SqlLogs.Count
+            </span>
+
+        </div>
+
+        @if (!Model.SqlLogs.Any())
+        {
+            <div class="card-body text-muted">
+                No SQL calls found for this Trace ID.
+            </div>
+        }
+        else
+        {
+            <div class="accordion" id="sqlAccordion">
+
+                @for (var i = 0; i < Model.SqlLogs.Count; i++)
+                {
+                    var sql = Model.SqlLogs[i];
+
+                    <div class="accordion-item">
+
+                        <h2 class="accordion-header"
+                            id="heading-@i">
+
+                            <button class="accordion-button @(i == 0 ? "" : "collapsed")"
+                                    type="button"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#sql-@i">
+
+                                <div class="w-100">
+
+                                    <strong>
+                                        @(i + 1).
+                                        @sql.SqlOperation
+                                    </strong>
+
+                                    <span class="ms-3 text-muted">
+                                        @sql.ElapsedMilliseconds ms
+                                    </span>
+
+                                    @if (sql.IsSuccess)
+                                    {
+                                        <span class="badge bg-success ms-2">
+                                            Success
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger ms-2">
+                                            Failed
+                                        </span>
+                                    }
+
+                                    <div class="small text-muted mt-1">
+                                        @sql.CreatedAt.ToString(
+                                            "yyyy-MM-dd HH:mm:ss.fff")
+                                    </div>
+
+                                </div>
+
+                            </button>
+
+                        </h2>
+
+                        <div id="sql-@i"
+                             class="accordion-collapse collapse @(i == 0 ? "show" : "")"
+                             data-bs-parent="#sqlAccordion">
+
+                            <div class="accordion-body">
+
+                                <h6>
+                                    Command
+                                </h6>
+
+                                <pre class="bg-dark text-light p-3"
+                                     style="overflow:auto;white-space:pre-wrap;">@sql.CommandText</pre>
+
+
+                                @if (!string.IsNullOrWhiteSpace(sql.Parameters))
+                                {
+                                    <h6>
+                                        Parameters
+                                    </h6>
+
+                                    <pre class="bg-light p-3"
+                                         style="overflow:auto;white-space:pre-wrap;">@sql.Parameters</pre>
+                                }
+
+
+                                @if (!string.IsNullOrWhiteSpace(sql.Exception))
+                                {
+                                    <h6 class="text-danger">
+                                        Exception
+                                    </h6>
+
+                                    <pre class="bg-dark text-danger p-3"
+                                         style="overflow:auto;white-space:pre-wrap;">@sql.Exception</pre>
+                                }
+
+                            </div>
+
+                        </div>
+
+                    </div>
+                }
+
+            </div>
+        }
+
+    </div>
+
+</div>

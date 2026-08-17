@@ -1,0 +1,129 @@
+@page "/veylog"
+@model Veylog.Pages.IndexModel
+
+@{
+    ViewData["Title"] = "Veylog Dashboard";
+}
+
+<div class="container-fluid">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Veylog Dashboard</h1>
+
+        <div>
+            <a href="/veylog/apis" class="btn btn-primary">
+                API Requests
+            </a>
+
+            <a href="/veylog/sqls" class="btn btn-secondary">
+                SQL Calls
+            </a>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6 class="text-muted">Total Requests</h6>
+                    <h2>@Model.TotalRequests</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6 class="text-muted">Errors</h6>
+                    <h2 class="text-danger">@Model.Errors</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6 class="text-muted">Success</h6>
+                    <h2 class="text-success">
+                        @(Model.TotalRequests - Model.Errors)
+                    </h2>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header">
+            Latest API Requests
+        </div>
+
+        <div class="table-responsive">
+
+            <table class="table table-hover mb-0">
+
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Method</th>
+                        <th>Path</th>
+                        <th>Status</th>
+                        <th>Duration</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    @foreach (var log in Model.Logs)
+                    {
+                        <tr>
+                            <td>
+                                @log.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")
+                            </td>
+
+                            <td>
+                                <span class="badge bg-dark">
+                                    @log.HttpMethod
+                                </span>
+                            </td>
+
+                            <td>
+                                @log.Path
+                            </td>
+
+                            <td>
+                                @if (log.StatusCode >= 500)
+                                {
+                                    <span class="badge bg-danger">
+                                        @log.StatusCode
+                                    </span>
+                                }
+                                else if (log.StatusCode >= 400)
+                                {
+                                    <span class="badge bg-warning text-dark">
+                                        @log.StatusCode
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success">
+                                        @log.StatusCode
+                                    </span>
+                                }
+                            </td>
+
+                            <td>
+                                @log.ElapsedMilliseconds ms
+                            </td>
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+    </div>
+
+</div>

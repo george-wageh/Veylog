@@ -1,0 +1,611 @@
+@page "/veylog/apis"
+@model Veylog.Pages.ApisModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+@{
+    ViewData["Title"] = "API Requests";
+}
+
+<div class="container-fluid">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+
+        <h1>API Requests</h1>
+
+        <a href="/veylog" class="btn btn-secondary">
+            Dashboard
+        </a>
+
+    </div>
+
+
+    <!-- Filters -->
+
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-header">
+            Search / Filters
+        </div>
+
+        <div class="card-body">
+
+            <form method="get">
+
+                <div class="row g-3">
+
+                    <div class="col-md-3">
+
+                        <label class="form-label">
+                            From
+                        </label>
+
+                        <input type="datetime-local"
+                               class="form-control"
+                               name="From"
+                               value="@(Model.From?.ToString("yyyy-MM-ddTHH:mm"))" />
+
+                    </div>
+
+                    <div class="col-md-3">
+
+                        <label class="form-label">
+                            To
+                        </label>
+
+                        <input type="datetime-local"
+                               class="form-control"
+                               name="To"
+                               value="@(Model.To?.ToString("yyyy-MM-ddTHH:mm"))" />
+
+                    </div>
+
+                    <div class="col-md-3">
+
+                        <label class="form-label">
+                            API / Path
+                        </label>
+
+                        <input type="text"
+                               class="form-control"
+                               name="Api"
+                               value="@Model.Api"
+                               placeholder="/api/users" />
+
+                    </div>
+
+                    <div class="col-md-3">
+
+                        <label class="form-label">
+                            Status Codes
+                        </label>
+
+                        <input type="text"
+                               class="form-control"
+                               name="StatusCodes"
+                               value="@Model.StatusCodes"
+                               placeholder="404, 401, 500" />
+
+                        <div class="form-text">
+                            Enter multiple codes separated by commas.
+                        </div>
+
+                    </div>
+
+                    <div class="col-md-3">
+
+                        <label class="form-label">
+                            HTTP Method
+                        </label>
+
+                        <select class="form-select"
+                                name="Methods"
+                                multiple
+                                size="4">
+
+                            @foreach (var method in Model.AvailableMethods)
+                            {
+                                <option value="@method"
+                                        selected="@(Model.Methods.Contains(method, StringComparer.OrdinalIgnoreCase))">
+                                    @method
+                                </option>
+                            }
+
+                        </select>
+
+                        <div class="form-text">
+                            Hold Ctrl (Windows) or Command (Mac) to select multiple methods.
+                        </div>
+
+                    </div>
+
+                    <div class="col-md-3">
+
+                        <label class="form-label">
+                            Search
+                        </label>
+
+                        <input type="text"
+                               class="form-control"
+                               name="Search"
+                               value="@Model.Search"
+                               placeholder="Path, request or response..." />
+
+                    </div>
+
+                    <div class="col-md-3">
+
+                        <label class="form-label">
+                            Request Body
+                        </label>
+
+                        <input type="text"
+                               class="form-control"
+                               name="RequestBody"
+                               value="@Model.RequestBody"
+                               placeholder="Search request body..." />
+
+                    </div>
+
+                    <div class="col-md-3">
+
+                        <label class="form-label">
+                            Response Body
+                        </label>
+
+                        <input type="text"
+                               class="form-control"
+                               name="ResponseBody"
+                               value="@Model.ResponseBody"
+                               placeholder="Search response body..." />
+
+                    </div>
+
+                    <div class="col-12 d-flex align-items-end gap-2">
+
+                        <button type="submit"
+                                class="btn btn-primary">
+                            Search
+                        </button>
+
+                        <a href="/veylog/apis"
+                           class="btn btn-outline-secondary">
+                            Clear
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <!-- Results -->
+
+    <div class="card shadow-sm">
+
+        <div class="card-header d-flex justify-content-between align-items-center">
+
+            <div>
+                <span class="fw-semibold">
+                    API Requests
+                </span>
+            </div>
+
+            <div class="d-flex gap-3">
+
+                <span class="text-muted">
+                    <strong>@Model.TotalApis</strong>
+                    APIs
+                </span>
+
+                <span class="text-muted">
+                    <strong>@Model.TotalRecords</strong>
+                    records
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <div class="table-responsive">
+
+            <table class="table table-hover align-middle mb-0">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Date</th>
+                        <th>Method</th>
+                        <th>Path</th>
+                        <th>Status</th>
+                        <th>Duration</th>
+                        <th>Trace ID</th>
+                        <th></th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    @if (!Model.Logs.Any())
+                    {
+                        <tr>
+
+                            <td colspan="7"
+                                class="text-center text-muted py-5">
+
+                                No API requests found.
+
+                            </td>
+
+                        </tr>
+                    }
+
+                    @foreach (var log in Model.Logs)
+                    {
+                        <tr>
+
+                            <td>
+                                @log.CreatedAt.ToString(
+                                    "yyyy-MM-dd HH:mm:ss")
+                            </td>
+
+                            <td>
+
+                                <span class="badge bg-dark">
+                                    @log.HttpMethod
+                                </span>
+
+                            </td>
+
+                            <td>
+
+                                <strong>
+                                    @log.Path
+                                </strong>
+
+                                @if (!string.IsNullOrEmpty(log.QueryString))
+                                {
+                                    <div class="small text-muted">
+                                        @log.QueryString
+                                    </div>
+                                }
+
+                            </td>
+
+                            <td>
+
+                                @if (log.StatusCode >= 500)
+                                {
+                                    <span class="badge bg-danger">
+                                        @log.StatusCode
+                                    </span>
+                                }
+                                else if (log.StatusCode >= 400)
+                                {
+                                    <span class="badge bg-warning text-dark">
+                                        @log.StatusCode
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success">
+                                        @log.StatusCode
+                                    </span>
+                                }
+
+                            </td>
+
+                            <td>
+                                @log.ElapsedMilliseconds ms
+                            </td>
+
+                            <td>
+
+                                <code>
+                                    @(log.TraceId.Length > 12
+                                        ? log.TraceId[..12] + "..."
+                                        : log.TraceId)
+                                </code>
+
+                            </td>
+
+                            <td>
+
+                                <a class="btn btn-sm btn-primary"
+                                   href="/veylog/apis/@log.Id">
+
+                                    Details
+
+                                </a>
+
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+        <!-- Pagination -->
+        @if (Model.TotalPages > 1)
+        {
+            <div class="card-footer">
+
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+
+                    <div class="text-muted small">
+
+                        Page
+                        <strong>@Model.PageNumber</strong>
+                        of
+                        <strong>@Model.TotalPages</strong>
+
+                    </div>
+
+
+                    <nav aria-label="API pagination">
+
+                        <ul class="pagination mb-0">
+
+                            <!-- First -->
+
+                            <li class="page-item @(Model.PageNumber <= 1 ? "disabled" : "")">
+
+                                @if (Model.PageNumber > 1)
+                                {
+                                    <a class="page-link"
+                                       asp-page="/Apis"
+                                       asp-route-pageNumber="1"
+                                       asp-route-from="@Model.From?.ToString("yyyy-MM-ddTHH:mm")"
+                                       asp-route-to="@Model.To?.ToString("yyyy-MM-ddTHH:mm")"
+                                       asp-route-api="@Model.Api"
+                                       asp-route-search="@Model.Search"
+                                       asp-route-requestBody="@Model.RequestBody"
+                                       asp-route-responseBody="@Model.ResponseBody"
+                                       asp-route-statusCodes="@Model.StatusCodes"
+                                       asp-route-Methods="@Model.Methods">
+
+                                        First
+
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="page-link">
+                                        First
+                                    </span>
+                                }
+
+                            </li>
+
+
+                            <!-- Previous -->
+
+                            <li class="page-item @(Model.PageNumber <= 1 ? "disabled" : "")">
+
+                                @if (Model.PageNumber > 1)
+                                {
+                                    <a class="page-link"
+                                       asp-page="/Apis"
+                                       asp-route-pageNumber="@(Model.PageNumber - 1)"
+                                       asp-route-from="@Model.From?.ToString("yyyy-MM-ddTHH:mm")"
+                                       asp-route-to="@Model.To?.ToString("yyyy-MM-ddTHH:mm")"
+                                       asp-route-api="@Model.Api"
+                                       asp-route-search="@Model.Search"
+                                       asp-route-requestBody="@Model.RequestBody"
+                                       asp-route-responseBody="@Model.ResponseBody"
+                                       asp-route-statusCodes="@Model.StatusCodes"
+                                       asp-route-Methods="@Model.Methods">
+
+                                        Previous
+
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="page-link">
+                                        Previous
+                                    </span>
+                                }
+
+                            </li>
+
+
+                            @{
+                                var startPage = Math.Max(
+                                    1,
+                                    Model.PageNumber - 2);
+
+                                var endPage = Math.Min(
+                                    Model.TotalPages,
+                                    Model.PageNumber + 2);
+                            }
+
+
+                            <!-- First page + dots -->
+                            @if (startPage > 1)
+                            {
+                                <li class="page-item">
+
+                                    <a class="page-link"
+                                       asp-page="/Apis"
+                                       asp-route-pageNumber="1"
+                                       asp-route-from="@Model.From?.ToString("yyyy-MM-ddTHH:mm")"
+                                       asp-route-to="@Model.To?.ToString("yyyy-MM-ddTHH:mm")"
+                                       asp-route-api="@Model.Api"
+                                       asp-route-search="@Model.Search"
+                                       asp-route-requestBody="@Model.RequestBody"
+                                       asp-route-responseBody="@Model.ResponseBody"
+                                       asp-route-statusCodes="@Model.StatusCodes"
+                                       asp-route-Methods="@Model.Methods">
+
+                                        1
+
+                                    </a>
+
+                                </li>
+
+                                @if (startPage > 2)
+                                {
+                                    <li class="page-item disabled">
+
+                                        <span class="page-link">
+                                            ...
+                                        </span>
+
+                                    </li>
+                                }
+                            }
+
+
+                            <!-- Page Numbers -->
+                            @for (
+                                                            var pageNumber = startPage;
+                                                            pageNumber <= endPage;
+                                                            pageNumber++)
+                            {
+                                <li class="page-item @(pageNumber == Model.PageNumber ? "active" : "")">
+
+                                    <a class="page-link"
+                                       asp-page="/Apis"
+                                       asp-route-pageNumber="@pageNumber"
+                                       asp-route-from="@Model.From?.ToString("yyyy-MM-ddTHH:mm")"
+                                       asp-route-to="@Model.To?.ToString("yyyy-MM-ddTHH:mm")"
+                                       asp-route-api="@Model.Api"
+                                       asp-route-search="@Model.Search"
+                                       asp-route-requestBody="@Model.RequestBody"
+                                       asp-route-responseBody="@Model.ResponseBody"
+                                       asp-route-statusCodes="@Model.StatusCodes"
+                                       asp-route-Methods="@Model.Methods">
+
+                                        @pageNumber
+
+                                    </a>
+
+                                </li>
+                            }
+
+
+                            <!-- Last page + dots -->
+                            @if (endPage < Model.TotalPages)
+                            {
+                                @if (endPage < Model.TotalPages - 1)
+                                {
+                                    <li class="page-item disabled">
+
+                                        <span class="page-link">
+                                            ...
+                                        </span>
+
+                                    </li>
+                                }
+
+                                <li class="page-item">
+
+                                    <a class="page-link"
+                                       asp-page="/Apis"
+                                       asp-route-pageNumber="@Model.TotalPages"
+                                       asp-route-from="@Model.From?.ToString("yyyy-MM-ddTHH:mm")"
+                                       asp-route-to="@Model.To?.ToString("yyyy-MM-ddTHH:mm")"
+                                       asp-route-api="@Model.Api"
+                                       asp-route-search="@Model.Search"
+                                       asp-route-requestBody="@Model.RequestBody"
+                                       asp-route-responseBody="@Model.ResponseBody"
+                                       asp-route-statusCodes="@Model.StatusCodes"
+                                       asp-route-Methods="@Model.Methods">
+
+                                        @Model.TotalPages
+
+                                    </a>
+
+                                </li>
+                            }
+
+
+                            <!-- Next -->
+
+                            <li class="page-item @(Model.PageNumber >= Model.TotalPages ? "disabled" : "")">
+
+                                @if (Model.PageNumber < Model.TotalPages)
+                                {
+                                    <a class="page-link"
+                                       asp-page="/Apis"
+                                       asp-route-pageNumber="@(Model.PageNumber + 1)"
+                                       asp-route-from="@Model.From?.ToString("yyyy-MM-ddTHH:mm")"
+                                       asp-route-to="@Model.To?.ToString("yyyy-MM-ddTHH:mm")"
+                                       asp-route-api="@Model.Api"
+                                       asp-route-search="@Model.Search"
+                                       asp-route-requestBody="@Model.RequestBody"
+                                       asp-route-responseBody="@Model.ResponseBody"
+                                       asp-route-statusCodes="@Model.StatusCodes"
+                                       asp-route-Methods="@Model.Methods">
+
+                                        Next
+
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="page-link">
+                                        Next
+                                    </span>
+                                }
+
+                            </li>
+
+
+                            <!-- Last -->
+
+                            <li class="page-item @(Model.PageNumber >= Model.TotalPages ? "disabled" : "")">
+
+                                @if (Model.PageNumber < Model.TotalPages)
+                                {
+                                    <a class="page-link"
+                                       asp-page="/Apis"
+                                       asp-route-pageNumber="@Model.TotalPages"
+                                       asp-route-from="@Model.From?.ToString("yyyy-MM-ddTHH:mm")"
+                                       asp-route-to="@Model.To?.ToString("yyyy-MM-ddTHH:mm")"
+                                       asp-route-api="@Model.Api"
+                                       asp-route-search="@Model.Search"
+                                       asp-route-requestBody="@Model.RequestBody"
+                                       asp-route-responseBody="@Model.ResponseBody"
+                                       asp-route-statusCodes="@Model.StatusCodes"
+                                       asp-route-Methods="@Model.Methods">
+
+                                        Last
+
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="page-link">
+                                        Last
+                                    </span>
+                                }
+
+                            </li>
+
+                        </ul>
+
+                    </nav>
+
+                </div>
+
+            </div>
+        }
+
+    </div>
+
+</div>

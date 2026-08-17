@@ -1,51 +1,52 @@
 ﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Veylog.Interceptors;
 using Veylog.Middleware;
+using Veylog.Pages;
 
-namespace Veylog
+namespace Veylog;
+
+public static class OcuLogExtensions
 {
-    public static class OcuLogExtensions
+    public static IServiceCollection AddVeylog(
+        this IServiceCollection services,
+        Action<OcuLogOptions> configure)
     {
-        public static IServiceCollection AddOcuLog(
-     this IServiceCollection services,
-     Action<OcuLogOptions> configure)
+        var options = new OcuLogOptions();
+
+        configure(options);
+
+        services.AddSingleton(options);
+
+        services.AddDbContext<LogDbContext>(db =>
         {
-            var options = new OcuLogOptions();
+            db.UseSqlServer(options.ConnectionString);
+        });
 
-            configure(options);
+        services.AddSingleton<SqlLoggingInterceptor>();
 
-            services.AddSingleton(options);
+        services.AddRazorPages()
+            .AddApplicationPart(typeof(IndexModel).Assembly);
 
-            services.AddDbContext<LogDbContext>(db =>
-            {
-                db.UseSqlServer(options.ConnectionString);
-            });
+        return services;
+    }
 
-            services.AddSingleton<SqlLoggingInterceptor>();
-
-            return services;
-        }
-
-        public static IApplicationBuilder UseVeylog(
-            this IApplicationBuilder app)
+    public static WebApplication UseVeylog(
+        this WebApplication app)
+    {
+        using (var scope = app.Services.CreateScope())
         {
-            using var scope = app.ApplicationServices.CreateScope();
-
             var db = scope.ServiceProvider
                 .GetRequiredService<LogDbContext>();
 
             db.Database.Migrate();
-
-            app.UseMiddleware<ApiLoggingMiddleware>();
-
-            return app;
         }
+
+        app.UseMiddleware<ApiLoggingMiddleware>();
+
+        app.MapRazorPages();
+
+        return app;
     }
 }
