@@ -1,0 +1,190 @@
+@page "/veylog/login"
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+@model LoginModel
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+        background: #f6f7f9;
+        color: #1f2937;
+    }
+
+    .login-page {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+    }
+
+    .login-box {
+        width: 100%;
+        max-width: 380px;
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 32px;
+    }
+
+    .login-header {
+        margin-bottom: 28px;
+    }
+
+        .login-header h1 {
+            margin: 0 0 8px;
+            font-size: 24px;
+            font-weight: 600;
+            color: #111827;
+        }
+
+        .login-header p {
+            margin: 0;
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 7px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+        }
+
+    .token-input {
+        width: 100%;
+        height: 44px;
+        padding: 0 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 7px;
+        outline: none;
+        background: #fff;
+        color: #111827;
+        font-size: 14px;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+        .token-input::placeholder {
+            color: #9ca3af;
+        }
+
+        .token-input:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+    .validation-error {
+        display: block;
+        margin-top: 6px;
+        font-size: 13px;
+        color: #dc2626;
+    }
+
+    .error-message {
+        margin-bottom: 20px;
+        padding: 10px 12px;
+        border-radius: 7px;
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        color: #b91c1c;
+        font-size: 13px;
+    }
+
+    .login-button {
+        width: 100%;
+        height: 44px;
+        border: 0;
+        border-radius: 7px;
+        background: #2563eb;
+        color: #ffffff;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.15s ease;
+    }
+
+        .login-button:hover {
+            background: #1d4ed8;
+        }
+
+        .login-button:active {
+            background: #1e40af;
+        }
+
+        .login-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+    .login-footer {
+        margin-top: 20px;
+        text-align: center;
+        font-size: 12px;
+        color: #9ca3af;
+    }
+
+    @@media (max-width: 480px) {
+        .login-page {
+            padding: 16px;
+        }
+
+        .login-box {
+            padding: 24px;
+        }
+    }
+</style>
+
+<div class="login-page">
+    <div class="login-box">
+
+        <div class="login-header">
+            <h1>Sign in</h1>
+            <p>Enter your access token to continue.</p>
+        </div>
+
+        <form method="post">
+
+            <div class="form-group">
+                <label asp-for="Token">Access token</label>
+
+                <input asp-for="Token"
+                       type="password"
+                       class="token-input"
+                       placeholder="Enter your token"
+                       autocomplete="off"
+                       autofocus />
+
+                <span asp-validation-for="Token"
+                      class="validation-error">
+                </span>
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div class="error-message">
+                    @Model.ErrorMessage
+                </div>
+            }
+
+            <button type="submit" class="login-button">
+                Continue
+            </button>
+
+        </form>
+
+        <div class="login-footer">
+            Secure access
+        </div>
+
+    </div>
+</div>

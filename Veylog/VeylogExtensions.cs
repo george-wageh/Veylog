@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Veylog.Interceptors;
@@ -7,13 +8,13 @@ using Veylog.Pages;
 
 namespace Veylog;
 
-public static class OcuLogExtensions
+public static class VeylogExtensions
 {
     public static IServiceCollection AddVeylog(
         this IServiceCollection services,
-        Action<OcuLogOptions> configure)
+        Action<VeylogOptions> configure)
     {
-        var options = new OcuLogOptions();
+        var options = new VeylogOptions();
 
         configure(options);
 
@@ -26,8 +27,30 @@ public static class OcuLogExtensions
 
         services.AddSingleton<SqlLoggingInterceptor>();
 
-        services.AddRazorPages()
-            .AddApplicationPart(typeof(IndexModel).Assembly);
+        services.AddScoped<LibraryAccessFilter>();
+
+        services.AddRazorPages(options =>
+        {
+            options.Conventions.AddFolderApplicationModelConvention(
+                "/veylog",
+                model =>
+                {
+                    model.Filters.Add(
+                        new TypeFilterAttribute(typeof(LibraryAccessFilter)));
+                });
+        })
+        .AddApplicationPart(typeof(IndexModel).Assembly);
+
+        services
+            .AddAuthentication()
+            .AddCookie("VeylogScheme", options =>
+            {
+                options.Cookie.Name = "Veylog.Auth";
+                options.LoginPath = "/veylog/login";
+                options.ExpireTimeSpan = TimeSpan.FromHours(8);
+            });
+
+        services.AddSingleton<VeylogTokenManager>();
 
         return services;
     }

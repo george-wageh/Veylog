@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Veylog
 {
-    public class OcuLogOptions
+    public class VeylogOptions
     {
         public string ConnectionString { get; set; } = string.Empty;
 
