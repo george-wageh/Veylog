@@ -54,7 +54,15 @@ public static class VeylogExtensions
 
         return services;
     }
+    public static DbContextOptionsBuilder AddVeylogSqlInterceptor(
+        this DbContextOptionsBuilder options,
+        IServiceProvider serviceProvider)
+    {
+        options.AddInterceptors(
+            serviceProvider.GetRequiredService<SqlLoggingInterceptor>());
 
+        return options;
+    }
     public static WebApplication UseVeylog(
         this WebApplication app)
     {

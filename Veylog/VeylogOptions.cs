@@ -11,6 +11,9 @@ namespace Veylog
         public string ConnectionString { get; set; } = string.Empty;
 
         public bool EnableApiLogging { get; set; } = true;
+        public bool EnableRequestLogging { get; set; } = false;
+        public bool EnableResponseLogging { get; set; } = false;
+        public bool EnableSqlParametersLogging { get; set; } = false;
 
         public bool EnableSqlLogging { get; set; } = true;
 

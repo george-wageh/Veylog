@@ -15,11 +15,14 @@ namespace Veylog.Interceptors
     public class SqlLoggingInterceptor : DbCommandInterceptor
     {
         private readonly IServiceScopeFactory _scopeFactory;
+        private readonly VeylogOptions _options;
 
         public SqlLoggingInterceptor(
-            IServiceScopeFactory scopeFactory)
+            IServiceScopeFactory scopeFactory,
+            VeylogOptions options)
         {
             _scopeFactory = scopeFactory;
+            _options = options;
         }
 
         // =========================================================
@@ -32,12 +35,15 @@ namespace Veylog.Interceptors
             DbDataReader result,
             CancellationToken cancellationToken = default)
         {
-            await SaveLog(
-                command,
-                SqlOperation.Reader,
-                eventData.Duration.TotalMilliseconds,
-                true,
-                null);
+            if (_options.EnableSqlLogging)
+            {
+                await SaveLog(
+                    command,
+                    SqlOperation.Reader,
+                    eventData.Duration.TotalMilliseconds,
+                    true,
+                    null);
+            }
 
             return result;
         }
@@ -53,12 +59,15 @@ namespace Veylog.Interceptors
             int result,
             CancellationToken cancellationToken = default)
         {
-            await SaveLog(
-                command,
-                SqlOperation.NonQuery,
-                eventData.Duration.TotalMilliseconds,
-                true,
-                null);
+            if (_options.EnableSqlLogging)
+            {
+                await SaveLog(
+                    command,
+                    SqlOperation.NonQuery,
+                    eventData.Duration.TotalMilliseconds,
+                    true,
+                    null);
+            }
 
             return result;
         }
@@ -74,12 +83,15 @@ namespace Veylog.Interceptors
             object? result,
             CancellationToken cancellationToken = default)
         {
-            await SaveLog(
-                command,
-                SqlOperation.Scalar,
-                eventData.Duration.TotalMilliseconds,
-                true,
-                null);
+            if (_options.EnableSqlLogging)
+            {
+                await SaveLog(
+                    command,
+                    SqlOperation.Scalar,
+                    eventData.Duration.TotalMilliseconds,
+                    true,
+                    null);
+            }
 
             return result;
         }
@@ -93,12 +105,15 @@ namespace Veylog.Interceptors
             CommandErrorEventData eventData,
             CancellationToken cancellationToken = default)
         {
-            await SaveLog(
-                command,
-                GetSqlOperation(eventData),
-                eventData.Duration.TotalMilliseconds,
-                false,
-                eventData.Exception.ToString());
+            if (_options.EnableSqlLogging)
+            {
+                await SaveLog(
+                    command,
+                    GetSqlOperation(eventData),
+                    eventData.Duration.TotalMilliseconds,
+                    false,
+                    eventData.Exception.ToString());
+            }
 
             await base.CommandFailedAsync(
                 command,
@@ -120,7 +135,6 @@ namespace Veylog.Interceptors
 
                 DbCommandMethod.ExecuteScalar
                     => SqlOperation.Scalar,
-
 
                 DbCommandMethod.ExecuteNonQuery
                     => SqlOperation.NonQuery,
@@ -145,11 +159,27 @@ namespace Veylog.Interceptors
                 var traceId =
                     Activity.Current?.TraceId.ToString();
 
-                var parameters = command.Parameters
-                    .Cast<DbParameter>()
-                    .ToDictionary(
-                        x => x.ParameterName,
-                        x => x.Value?.ToString());
+                // =====================================================
+                // SQL Parameters
+                // =====================================================
+
+                string? parametersJson = null;
+
+                if (_options.EnableSqlParametersLogging)
+                {
+                    var parameters = command.Parameters
+                        .Cast<DbParameter>()
+                        .ToDictionary(
+                            x => x.ParameterName,
+                            x => x.Value?.ToString());
+
+                    parametersJson =
+                        JsonSerializer.Serialize(parameters);
+                }
+
+                // =====================================================
+                // Create Scope
+                // =====================================================
 
                 using var scope =
                     _scopeFactory.CreateScope();
@@ -157,6 +187,10 @@ namespace Veylog.Interceptors
                 var db =
                     scope.ServiceProvider
                         .GetRequiredService<LogDbContext>();
+
+                // =====================================================
+                // Create Log
+                // =====================================================
 
                 var log = new SqlLog
                 {
@@ -168,8 +202,7 @@ namespace Veylog.Interceptors
 
                     SqlOperation = sqlOperation,
 
-                    Parameters =
-                        JsonSerializer.Serialize(parameters),
+                    Parameters = parametersJson,
 
                     ElapsedMilliseconds =
                         (long)Math.Round(elapsedMilliseconds),

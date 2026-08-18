@@ -2,8 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -14,17 +14,34 @@ namespace Veylog.Middleware
     public class ApiLoggingMiddleware
     {
         private readonly RequestDelegate _next;
+        private readonly VeylogOptions _options;
 
-        public ApiLoggingMiddleware(RequestDelegate next)
+        public ApiLoggingMiddleware(
+            RequestDelegate next,
+            VeylogOptions options)
         {
             _next = next;
+            _options = options;
         }
 
         public async Task InvokeAsync(
             HttpContext context,
             LogDbContext db)
         {
-            // Skip Veylog requests
+            // =========================
+            // API Logging Disabled
+            // =========================
+
+            if (!_options.EnableApiLogging)
+            {
+                await _next(context);
+                return;
+            }
+
+            // =========================
+            // Skip Veylog Requests
+            // =========================
+
             if (context.Request.Path.Value?.Contains(
                     "veylog",
                     StringComparison.OrdinalIgnoreCase) == true)
@@ -32,6 +49,10 @@ namespace Veylog.Middleware
                 await _next(context);
                 return;
             }
+
+            // =========================
+            // Skip CORS Preflight
+            // =========================
 
             var isCorsPreflight =
                 context.Request.Method.Equals(
@@ -43,6 +64,7 @@ namespace Veylog.Middleware
                     out var requestedMethod)
                 &&
                 !string.IsNullOrWhiteSpace(requestedMethod);
+
             if (isCorsPreflight)
             {
                 await _next(context);
@@ -51,19 +73,23 @@ namespace Veylog.Middleware
 
             var stopwatch = Stopwatch.StartNew();
 
-            var traceId = Activity.Current?.TraceId.ToString()
-                          ?? context.TraceIdentifier;
+            var traceId =
+                Activity.Current?.TraceId.ToString()
+                ?? context.TraceIdentifier;
 
             string? requestBody = null;
             string? responseBody = null;
             string? exception = null;
 
             // =========================
-            // Request Body
+            // Request Body Logging
             // =========================
 
-            if (context.Request.ContentLength > 0 &&
-                context.Request.ContentType?.Contains("application/json") == true)
+            if (_options.EnableRequestLogging &&
+                context.Request.ContentLength > 0 &&
+                context.Request.ContentType?.Contains(
+                    "application/json",
+                    StringComparison.OrdinalIgnoreCase) == true)
             {
                 context.Request.EnableBuffering();
 
@@ -80,14 +106,19 @@ namespace Veylog.Middleware
             }
 
             // =========================
-            // Response Body
+            // Response Body Logging
             // =========================
 
             var originalResponseBody = context.Response.Body;
 
-            await using var responseBodyStream = new MemoryStream();
+            MemoryStream? responseBodyStream = null;
 
-            context.Response.Body = responseBodyStream;
+            if (_options.EnableResponseLogging)
+            {
+                responseBodyStream = new MemoryStream();
+
+                context.Response.Body = responseBodyStream;
+            }
 
             try
             {
@@ -103,27 +134,54 @@ namespace Veylog.Middleware
             {
                 stopwatch.Stop();
 
-                // Read response
-                context.Response.Body.Seek(0, SeekOrigin.Begin);
+                // =========================
+                // Read Response Body
+                // =========================
 
-                using var reader = new StreamReader(
-                    context.Response.Body,
-                    Encoding.UTF8,
-                    leaveOpen: true);
+                if (_options.EnableResponseLogging &&
+                    responseBodyStream != null)
+                {
+                    try
+                    {
+                        context.Response.Body.Seek(
+                            0,
+                            SeekOrigin.Begin);
 
-                responseBody = await reader.ReadToEndAsync();
+                        using var reader = new StreamReader(
+                            context.Response.Body,
+                            Encoding.UTF8,
+                            leaveOpen: true);
 
-                context.Response.Body.Seek(0, SeekOrigin.Begin);
+                        responseBody = await reader.ReadToEndAsync();
 
-                // Copy response to original stream
-                await context.Response.Body.CopyToAsync(originalResponseBody);
+                        context.Response.Body.Seek(
+                            0,
+                            SeekOrigin.Begin);
 
-                context.Response.Body = originalResponseBody;
+                        await context.Response.Body.CopyToAsync(
+                            originalResponseBody);
 
-                responseBody = MaskSensitiveData(responseBody);
+                        responseBody =
+                            MaskSensitiveData(responseBody);
+                    }
+                    finally
+                    {
+                        context.Response.Body =
+                            originalResponseBody;
+
+                        await responseBodyStream.DisposeAsync();
+                    }
+                }
+                else
+                {
+                    // Response logging is disabled.
+                    // Make sure the original response stream remains intact.
+                    context.Response.Body =
+                        originalResponseBody;
+                }
 
                 // =========================
-                // Save Log
+                // Save API Log
                 // =========================
 
                 try
@@ -138,17 +196,24 @@ namespace Veylog.Middleware
 
                         Path = context.Request.Path,
 
-                        QueryString = context.Request.QueryString.ToString(),
+                        QueryString =
+                            context.Request.QueryString.ToString(),
 
-                        UserId = context.User?.Identity?.IsAuthenticated == true
-                            ? context.User.FindFirst("sub")?.Value
-                            : null,
+                        UserId =
+                            context.User?.Identity?.IsAuthenticated == true
+                                ? context.User.FindFirst("sub")?.Value
+                                : null,
 
-                        IpAddress = context.Connection.RemoteIpAddress?.ToString(),
+                        IpAddress =
+                            context.Connection.RemoteIpAddress?.ToString(),
 
-                        StatusCode = exception != null ? 500 : context.Response.StatusCode,
+                        StatusCode =
+                            exception != null
+                                ? 500
+                                : context.Response.StatusCode,
 
-                        ElapsedMilliseconds = stopwatch.ElapsedMilliseconds,
+                        ElapsedMilliseconds =
+                            stopwatch.ElapsedMilliseconds,
 
                         RequestBody = requestBody,
 
@@ -163,10 +228,15 @@ namespace Veylog.Middleware
                 }
                 catch
                 {
-                    // Never break the actual API because logging failed
+                    // Never break the actual API
+                    // because Veylog logging failed.
                 }
             }
         }
+
+        // =========================
+        // Mask Sensitive Data
+        // =========================
 
         private static string? MaskSensitiveData(string? json)
         {
@@ -177,24 +247,25 @@ namespace Veylog.Middleware
             {
                 using var document = JsonDocument.Parse(json);
 
-                var dictionary = JsonSerializer.Deserialize<
-                    Dictionary<string, object?>>(
-                    json);
+                var dictionary =
+                    JsonSerializer.Deserialize<
+                        Dictionary<string, object?>>(
+                            json);
 
                 if (dictionary == null)
                     return json;
 
                 var sensitiveFields = new[]
                 {
-                "password",
-                "confirmPassword",
-                "token",
-                "accessToken",
-                "refreshToken",
-                "authorization",
-                "cardNumber",
-                "cvv"
-            };
+                    "password",
+                    "confirmPassword",
+                    "token",
+                    "accessToken",
+                    "refreshToken",
+                    "authorization",
+                    "cardNumber",
+                    "cvv"
+                };
 
                 foreach (var field in sensitiveFields)
                 {
