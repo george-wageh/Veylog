@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Veylog.Interceptors;
+using Veylog.Logging;
 using Veylog.Middleware;
 using Veylog.Pages;
 
@@ -51,7 +52,8 @@ public static class VeylogExtensions
             });
 
         services.AddSingleton<VeylogTokenManager>();
-
+        services.AddSingleton<ILogQueue, LogQueue>();
+        services.AddHostedService<LogFlushBackgroundService>();
         return services;
     }
     public static DbContextOptionsBuilder AddVeylogSqlInterceptor(

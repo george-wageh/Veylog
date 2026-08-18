@@ -17,6 +17,7 @@ namespace Veylog
 
         public bool EnableSqlLogging { get; set; } = true;
 
-        public long SlowQueryThresholdMs { get; set; } = 500;
+        public int FlushIntervalSeconds { get; set; } = 30;
+        public int MaxBatchSize { get; set; } = 200;
     }
 }

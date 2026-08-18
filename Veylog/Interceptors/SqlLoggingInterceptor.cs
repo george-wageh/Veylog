@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Veylog.Logging;
 using Veylog.Models;
 
 namespace Veylog.Interceptors
@@ -16,13 +17,16 @@ namespace Veylog.Interceptors
     {
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly VeylogOptions _options;
+        private readonly ILogQueue _logQueue;
 
         public SqlLoggingInterceptor(
             IServiceScopeFactory scopeFactory,
-            VeylogOptions options)
+            VeylogOptions options,
+            ILogQueue logQueue)
         {
             _scopeFactory = scopeFactory;
             _options = options;
+            _logQueue = logQueue;
         }
 
         // =========================================================
@@ -147,80 +151,47 @@ namespace Veylog.Interceptors
         // Save Log
         // =========================================================
 
-        private async Task SaveLog(
-            DbCommand command,
-            SqlOperation sqlOperation,
-            double elapsedMilliseconds,
-            bool success,
-            string? exception)
+        private Task SaveLog(
+             DbCommand command,
+             SqlOperation sqlOperation,
+             double elapsedMilliseconds,
+             bool success,
+             string? exception)
         {
             try
             {
-                var traceId =
-                    Activity.Current?.TraceId.ToString();
-
-                // =====================================================
-                // SQL Parameters
-                // =====================================================
+                var traceId = Activity.Current?.TraceId.ToString();
 
                 string? parametersJson = null;
-
                 if (_options.EnableSqlParametersLogging)
                 {
                     var parameters = command.Parameters
                         .Cast<DbParameter>()
-                        .ToDictionary(
-                            x => x.ParameterName,
-                            x => x.Value?.ToString());
+                        .ToDictionary(x => x.ParameterName, x => x.Value?.ToString());
 
-                    parametersJson =
-                        JsonSerializer.Serialize(parameters);
+                    parametersJson = JsonSerializer.Serialize(parameters);
                 }
-
-                // =====================================================
-                // Create Scope
-                // =====================================================
-
-                using var scope =
-                    _scopeFactory.CreateScope();
-
-                var db =
-                    scope.ServiceProvider
-                        .GetRequiredService<LogDbContext>();
-
-                // =====================================================
-                // Create Log
-                // =====================================================
 
                 var log = new SqlLog
                 {
                     TraceId = traceId,
-
                     CreatedAt = DateTime.UtcNow,
-
                     CommandText = command.CommandText,
-
                     SqlOperation = sqlOperation,
-
                     Parameters = parametersJson,
-
-                    ElapsedMilliseconds =
-                        (long)Math.Round(elapsedMilliseconds),
-
+                    ElapsedMilliseconds = (long)Math.Round(elapsedMilliseconds),
                     IsSuccess = success,
-
                     Exception = exception
                 };
 
-                db.SqlLogs.Add(log);
-
-                await db.SaveChangesAsync();
+                _logQueue.Enqueue(log);
             }
             catch
             {
-                // Never break the actual application
-                // because SQL logging failed.
+                // Never break the actual application because SQL logging failed.
             }
+
+            return Task.CompletedTask;
         }
     }
 }

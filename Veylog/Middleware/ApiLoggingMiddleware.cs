@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Veylog.Logging;
 using Veylog.Models;
 
 namespace Veylog.Middleware
@@ -15,18 +16,19 @@ namespace Veylog.Middleware
     {
         private readonly RequestDelegate _next;
         private readonly VeylogOptions _options;
+        private readonly ILogQueue _logQueue;
 
         public ApiLoggingMiddleware(
             RequestDelegate next,
-            VeylogOptions options)
+            VeylogOptions options,
+            ILogQueue logQueue)
         {
             _next = next;
             _options = options;
+            _logQueue = logQueue;
         }
 
-        public async Task InvokeAsync(
-            HttpContext context,
-            LogDbContext db)
+        public async Task InvokeAsync(HttpContext context)
         {
             // =========================
             // API Logging Disabled
@@ -189,42 +191,23 @@ namespace Veylog.Middleware
                     var log = new ApiLog
                     {
                         TraceId = traceId,
-
                         CreatedAt = DateTime.UtcNow,
-
                         HttpMethod = context.Request.Method,
-
                         Path = context.Request.Path,
-
-                        QueryString =
-                            context.Request.QueryString.ToString(),
-
-                        UserId =
-                            context.User?.Identity?.IsAuthenticated == true
-                                ? context.User.FindFirst("sub")?.Value
-                                : null,
-
-                        IpAddress =
-                            context.Connection.RemoteIpAddress?.ToString(),
-
-                        StatusCode =
-                            exception != null
-                                ? 500
-                                : context.Response.StatusCode,
-
-                        ElapsedMilliseconds =
-                            stopwatch.ElapsedMilliseconds,
-
+                        QueryString = context.Request.QueryString.ToString(),
+                        UserId = context.User?.Identity?.IsAuthenticated == true
+                            ? context.User.FindFirst("sub")?.Value
+                            : null,
+                        IpAddress = context.Connection.RemoteIpAddress?.ToString(),
+                        StatusCode = exception != null ? 500 : context.Response.StatusCode,
+                        ElapsedMilliseconds = stopwatch.ElapsedMilliseconds,
                         RequestBody = requestBody,
-
                         ResponseBody = responseBody,
-
                         Exception = exception
                     };
 
-                    db.ApiLogs.Add(log);
+                    _logQueue.Enqueue(log);
 
-                    await db.SaveChangesAsync();
                 }
                 catch
                 {
