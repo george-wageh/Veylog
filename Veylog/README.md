@@ -1,5 +1,3 @@
-````shell
-cat > README.md << 'EOFREADME'
 # Veylog
 
 ![Veylog](https://img.shields.io/badge/Version-1.0.0-blue)
@@ -459,6 +457,6 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## Support
 
-For issues, questions, or contributions, please visit the [GitHub repository](https://github.com/georgewageh/veylog).
+For issues, questions, or contributions, please visit the [GitHub repository](https://github.com/george-wageh/veylog).
 
 ---
