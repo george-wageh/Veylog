@@ -68,7 +68,6 @@ Veylog is a comprehensive logging and monitoring library for ASP.NET Core applic
 - Automatic error tracking in API logs
 - `OnError` callback for handling failed requests
 - Runs from background flush service
-- Never affects request latency or original exception flow
 
 ### Configuration Options
 - Toggle API logging on/off
