@@ -46,7 +46,7 @@ Veylog is a comprehensive logging and monitoring library for ASP.NET Core applic
 - Async background logging with batching
 - Configurable flush interval (seconds) and batch size
 - Automatic database migration on startup
-- Non-blocking logging (never slows down your application)
+- Non-blocking logging 
 
 ### Interactive Dashboard
 - **API Logs View**: Detailed view of all HTTP requests with filtering capabilities
