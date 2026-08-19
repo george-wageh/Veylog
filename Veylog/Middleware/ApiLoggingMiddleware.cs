@@ -130,6 +130,11 @@ namespace Veylog.Middleware
             {
                 exception = ex.ToString();
 
+                // Note: the error callback (VeylogOptions.OnError) is invoked
+                // from LogFlushBackgroundService once the ApiLog is actually
+                // persisted, so it has a real database Id to report. We just
+                // capture the exception text here to store on the log.
+
                 throw;
             }
             finally

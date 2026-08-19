@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Http;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -19,5 +20,14 @@ namespace Veylog
 
         public int FlushIntervalSeconds { get; set; } = 30;
         public int MaxBatchSize { get; set; } = 200;
+
+        /// <summary>
+        /// Optional callback invoked for each API request that recorded an
+        /// exception, once its log entry has been saved to the database.
+        /// Receives the request path and the saved log's database Id.
+        /// Runs from the background flush service, not the request pipeline,
+        /// so it never affects request latency or the original exception flow.
+        /// </summary>
+        public Func<string, long, Task>? OnError { get; set; }
     }
 }

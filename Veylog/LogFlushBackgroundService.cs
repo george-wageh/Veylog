@@ -108,6 +108,36 @@ namespace Veylog.Logging
                 }
 
                 await db.SaveChangesAsync();
+
+                // =========================
+                // OnError Callback
+                // =========================
+                // Fired per failed ApiLog once the batch is actually persisted,
+                // so the Id below is the real database-assigned Id (EF fills it
+                // in during SaveChangesAsync). Only requests that recorded an
+                // exception trigger it. Wrapped so a bad callback can never
+                // take down the flusher.
+
+                if (_options.OnError != null)
+                {
+                    foreach (var item in items)
+                    {
+                        if (item is ApiLog apiLog)
+                        {
+                            if (apiLog.Exception != null)
+                            {
+                                try
+                                {
+                                    await _options.OnError.Invoke(apiLog.Path, apiLog.Id);
+                                }
+                                catch
+                                {
+                                    // Never let a callback failure break the flusher.
+                                }
+                            }
+                        }
+                    }
+                }
             }
             catch
             {
