@@ -457,6 +457,6 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## Support
 
-For issues, questions, or contributions, please visit the [GitHub repository](https://github.com/georgewageh/veylog).
+For issues, questions, or contributions, please visit the [GitHub repository](https://github.com/george-wageh/veylog).
 
 ---
