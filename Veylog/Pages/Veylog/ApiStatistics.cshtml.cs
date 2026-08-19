@@ -45,6 +45,14 @@ public class ApiStatisticsModel : PageModel
     [BindProperty(SupportsGet = true)]
     public string SortBy { get; set; } = "frequency";
 
+    /// <summary>
+    /// Number of top APIs to display (after sorting). 0 means show all.
+    /// </summary>
+    [BindProperty(SupportsGet = true)]
+    public int Top { get; set; } = 10;
+
+    public List<int> AvailableTopCounts { get; } = new() { 10, 20, 50, 100 };
+
     public List<string> AvailableMethods { get; } = new()
     {
         "GET",
@@ -80,6 +88,12 @@ public class ApiStatisticsModel : PageModel
     public int TotalApis { get; set; }
 
     public int TotalRecords { get; set; }
+
+    /// <summary>
+    /// Number of APIs actually rendered on the page (after applying Top).
+    /// </summary>
+    public int DisplayedApis => Statistics.Count;
+
     // =========================================================
     // Page Load
     // =========================================================
@@ -126,7 +140,12 @@ public class ApiStatisticsModel : PageModel
             .Select(group => BuildApiStatistics(group.Key, group))
             .ToList();
 
-        Statistics = SortStatistics(statistics);
+        statistics = SortStatistics(statistics);
+
+        // Limit to the requested number of top APIs (0 = show all)
+        Statistics = Top > 0
+            ? statistics.Take(Top).ToList()
+            : statistics;
     }
     // =========================================================
     // Sorting
@@ -232,9 +251,9 @@ public class ApiStatisticsModel : PageModel
     {
         var today = DateTime.Today;
 
-        // Daily defaults to last 7 days
+        // Daily defaults to the current month (1st of this month through today)
         if (!DailyFrom.HasValue)
-            DailyFrom = today.AddDays(-6);
+            DailyFrom = new DateTime(today.Year, today.Month, 1);
 
         if (!DailyTo.HasValue)
             DailyTo = today;
@@ -265,6 +284,10 @@ public class ApiStatisticsModel : PageModel
         var validSortValues = new[] { "frequency", "average", "min", "max", "path" };
         if (!validSortValues.Contains(SortBy))
             SortBy = "frequency";
+
+        // Normalize Top: only allow known values or 0 (All); anything else falls back to default
+        if (Top != 0 && !AvailableTopCounts.Contains(Top))
+            Top = 10;
 
         // Normalize status codes
         var statusCodeList = ApiLogFilterService.ParseStatusCodes(StatusCodes);
@@ -308,4 +331,3 @@ public class ApiStatisticsModel : PageModel
         public List<StatisticsCalculationService.StatisticsPoint> Yearly { get; set; } = new();
     }
 }
-

@@ -44,8 +44,27 @@
                         @await Html.PartialAsync("Shared/Components/SortByDropdown")
                     </div>
 
+                    <!-- Top N APIs -->
+                    <div class="col-md-2">
+                        <label class="form-label">Show</label>
+                        <select class="form-select" name="Top">
+                            @foreach (var count in Model.AvailableTopCounts)
+                            {
+                                <option value="@count" selected="@(Model.Top == count)">Top @count</option>
+                            }
+                            <option value="0" selected="@(Model.Top == 0)">All</option>
+                        </select>
+                    </div>
+
+                    <!-- Status Codes -->
+                    <div class="col-md-4">
+                        <label class="form-label">Status Codes</label>
+                        <input type="text" class="form-control" name="StatusCodes" value="@Model.StatusCodes" placeholder="404, 401, 500" />
+                        <div class="form-text">Enter multiple status codes separated by commas.</div>
+                    </div>
+
                     <!-- HTTP Methods (modern pill-style multi-select, no Ctrl needed) -->
-                    <div class="col-md-3">
+                    <div class="col-md-6">
                         <label class="form-label d-block">HTTP Method</label>
                         <div class="d-flex flex-wrap gap-2">
                             @foreach (var method in Model.AvailableMethods)
@@ -56,13 +75,6 @@
                                 <label class="btn btn-outline-primary btn-sm rounded-pill px-3" for="method_@method">@method</label>
                             }
                         </div>
-                    </div>
-
-                    <!-- Status Codes -->
-                    <div class="col-md-3">
-                        <label class="form-label">Status Codes</label>
-                        <input type="text" class="form-control" name="StatusCodes" value="@Model.StatusCodes" placeholder="404, 401, 500" />
-                        <div class="form-text">Enter multiple status codes separated by commas.</div>
                     </div>
 
                     <!-- Search -->
@@ -124,7 +136,13 @@
                 <div class="col-md-4">
                     <div class="border rounded p-3">
                         <div class="text-muted small">APIs</div>
-                        <div class="fs-3 fw-bold">@Model.TotalApis</div>
+                        <div class="fs-3 fw-bold">
+                            @Model.DisplayedApis
+                            @if (Model.Top > 0 && Model.TotalApis > Model.DisplayedApis)
+                            {
+                                <span class="fs-6 fw-normal text-muted">of @Model.TotalApis</span>
+                            }
+                        </div>
                     </div>
                 </div>
                 <div class="col-md-4">
