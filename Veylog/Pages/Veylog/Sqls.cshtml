@@ -245,7 +245,7 @@
                                 @if (Model.PageNumber > 1)
                                 {
                                     <a class="page-link"
-                                       asp-page="/Sqls"
+                                       asp-page="/Veylog/Sqls"
                                        asp-route-pageNumber="1">
 
                                         First
@@ -269,7 +269,7 @@
                                 @if (Model.PageNumber > 1)
                                 {
                                     <a class="page-link"
-                                       asp-page="/Sqls"
+                                       asp-page="/Veylog/Sqls"
                                        asp-route-pageNumber="@(Model.PageNumber - 1)">
 
                                         Previous
@@ -303,7 +303,7 @@
                                 <li class="page-item">
 
                                     <a class="page-link"
-                                       asp-page="/Sqls"
+                                       asp-page="/Veylog/Sqls"
                                        asp-route-pageNumber="1">
 
                                         1
@@ -334,7 +334,7 @@
                                 <li class="page-item @(pageNumber == Model.PageNumber ? "active" : "")">
 
                                     <a class="page-link"
-                                       asp-page="/Sqls"
+                                       asp-page="/Veylog/Sqls"
                                        asp-route-pageNumber="@pageNumber">
 
                                         @pageNumber
@@ -362,7 +362,7 @@
                                 <li class="page-item">
 
                                     <a class="page-link"
-                                       asp-page="/Sqls"
+                                       asp-page="/Veylog/Sqls"
                                        asp-route-pageNumber="@Model.TotalPages">
 
                                         @Model.TotalPages
@@ -380,7 +380,7 @@
                                 @if (Model.PageNumber < Model.TotalPages)
                                 {
                                     <a class="page-link"
-                                       asp-page="/Sqls"
+                                       asp-page="/Veylog/Sqls"
                                        asp-route-pageNumber="@(Model.PageNumber + 1)">
 
                                         Next
@@ -404,7 +404,7 @@
                                 @if (Model.PageNumber < Model.TotalPages)
                                 {
                                     <a class="page-link"
-                                       asp-page="/Sqls"
+                                       asp-page="/Veylog/Sqls"
                                        asp-route-pageNumber="@Model.TotalPages">
 
                                         Last

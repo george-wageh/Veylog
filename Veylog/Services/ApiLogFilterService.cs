@@ -14,7 +14,7 @@ public class ApiLogFilterService
         public DateTime? FromDate { get; set; }
         public DateTime? ToDate { get; set; }
         public string? Api { get; set; }
-        public List<string> Methods { get; set; } = new();
+        public string? Method { get; set; }
         public string? StatusCodes { get; set; }
         public string? RequestBody { get; set; }
         public string? ResponseBody { get; set; }
@@ -74,10 +74,11 @@ public class ApiLogFilterService
         }
 
         // HTTP method filter
-        if (filters.Methods.Count > 0)
+        if (!string.IsNullOrWhiteSpace(filters.Method))
         {
-            query = query.Where(x => filters.Methods.Contains(x.HttpMethod));
+            query = query.Where(x => x.HttpMethod == filters.Method);
         }
+
 
         // Status code filter
         var statusCodes = ParseStatusCodes(filters.StatusCodes);

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using System.Text.Json;
 using Veylog.Models;
 using Veylog.Services;
@@ -14,10 +15,15 @@ namespace Veylog.Pages;
 public class ApiStatisticsModel : PageModel
 {
     private readonly LogDbContext _db;
+    private readonly IMemoryCache _cache;
 
-    public ApiStatisticsModel(LogDbContext db)
+    private const string AvailableYearsCacheKey = "ApiStatistics_AvailableYears";
+    private static readonly TimeSpan AvailableYearsCacheTtl = TimeSpan.FromMinutes(5);
+
+    public ApiStatisticsModel(LogDbContext db, IMemoryCache cache)
     {
         _db = db;
+        _cache = cache;
     }
 
     // =========================================================
@@ -37,7 +43,7 @@ public class ApiStatisticsModel : PageModel
     public string? ResponseBody { get; set; }
 
     [BindProperty(SupportsGet = true)]
-    public List<string> Methods { get; set; } = new();
+    public string? Method { get; set; }
 
     [BindProperty(SupportsGet = true)]
     public string? StatusCodes { get; set; }
@@ -110,7 +116,7 @@ public class ApiStatisticsModel : PageModel
         var filterCriteria = new ApiLogFilterService.FilterCriteria
         {
             Api = Api,
-            Methods = Methods,
+            Method = Method,
             StatusCodes = StatusCodes,
             RequestBody = RequestBody,
             ResponseBody = ResponseBody,
@@ -119,8 +125,51 @@ public class ApiStatisticsModel : PageModel
 
         query = ApiLogFilterService.ApplyFilters(query, filterCriteria);
 
-        // Get required fields for statistics
-        var rows = await query
+        // -----------------------------------------------------
+        // Phase 1: cheap aggregation done in SQL.
+        // We only need per-path count/avg/min/max to know totals
+        // and to sort — NOT the full row set, and NOT the
+        // daily/monthly/yearly breakdown, which is expensive.
+        // -----------------------------------------------------
+        var perPathAggregates = await query
+            .GroupBy(x => x.Path)
+            .Select(g => new PathAggregate
+            {
+                Path = g.Key,
+                Count = g.Count(),
+                AverageMs = g.Average(x => x.ElapsedMilliseconds),
+                MinMs = g.Min(x => x.ElapsedMilliseconds),
+                MaxMs = g.Max(x => x.ElapsedMilliseconds)
+            })
+            .ToListAsync();
+
+        // Totals come from the cheap aggregate, no need to materialize raw rows.
+        TotalApis = perPathAggregates.Count;
+        TotalRecords = perPathAggregates.Sum(x => x.Count);
+
+        // Sort using only the cheap aggregate fields.
+        var orderedAggregates = SortAggregates(perPathAggregates);
+
+        // Apply Top BEFORE doing any expensive per-row work.
+        var limitedAggregates = Top > 0
+            ? orderedAggregates.Take(Top).ToList()
+            : orderedAggregates;
+
+        if (limitedAggregates.Count == 0)
+        {
+            Statistics = new List<ApiStatisticsGroup>();
+            return;
+        }
+
+        // -----------------------------------------------------
+        // Phase 2: pull raw rows ONLY for the paths we're
+        // actually going to display, then build the full
+        // daily/monthly/yearly breakdowns for just those.
+        // -----------------------------------------------------
+        var topPaths = limitedAggregates.Select(x => x.Path).ToList();
+
+        var detailRows = await query
+            .Where(x => topPaths.Contains(x.Path))
             .Select(x => new StatisticsRow
             {
                 Id = x.Id,
@@ -130,73 +179,68 @@ public class ApiStatisticsModel : PageModel
             })
             .ToListAsync();
 
-        // Calculate totals
-        TotalRecords = rows.Count;
-        TotalApis = rows.Select(x => x.Path).Distinct(StringComparer.OrdinalIgnoreCase).Count();
-
-        // Build and sort statistics
-        var statistics = rows
+        var rowsByPath = detailRows
             .GroupBy(x => x.Path, StringComparer.OrdinalIgnoreCase)
-            .Select(group => BuildApiStatistics(group.Key, group))
+            .ToDictionary(g => g.Key, g => (IEnumerable<StatisticsRow>)g, StringComparer.OrdinalIgnoreCase);
+
+        // Preserve the sort order established in Phase 1.
+        Statistics = limitedAggregates
+            .Select(agg => BuildApiStatistics(
+                agg.Path,
+                rowsByPath.TryGetValue(agg.Path, out var rows) ? rows : Enumerable.Empty<StatisticsRow>()))
             .ToList();
-
-        statistics = SortStatistics(statistics);
-
-        // Limit to the requested number of top APIs (0 = show all)
-        Statistics = Top > 0
-            ? statistics.Take(Top).ToList()
-            : statistics;
     }
+
     // =========================================================
-    // Sorting
+    // Sorting (cheap, pre-detail sort over aggregates)
     // =========================================================
 
-    private List<ApiStatisticsGroup> SortStatistics(List<ApiStatisticsGroup> statistics)
+    private List<PathAggregate> SortAggregates(List<PathAggregate> aggregates)
     {
         return SortBy?.Trim().ToLowerInvariant() switch
         {
             "frequency" =>
-                statistics
-                    .OrderByDescending(x => x.TotalRequests)
-                    .ThenBy(x => x.Path)
+                aggregates
+                    .OrderByDescending(x => x.Count)
+                    .ThenBy(x => x.Path, StringComparer.OrdinalIgnoreCase)
                     .ToList(),
 
             "average" =>
-                statistics
-                    .OrderByDescending(x => x.Overall.Average)
-                    .ThenByDescending(x => x.TotalRequests)
-                    .ThenBy(x => x.Path)
+                aggregates
+                    .OrderByDescending(x => x.AverageMs)
+                    .ThenByDescending(x => x.Count)
+                    .ThenBy(x => x.Path, StringComparer.OrdinalIgnoreCase)
                     .ToList(),
 
             "min" =>
-                statistics
-                    .OrderBy(x => x.Overall.Min)
-                    .ThenByDescending(x => x.TotalRequests)
-                    .ThenBy(x => x.Path)
+                aggregates
+                    .OrderBy(x => x.MinMs)
+                    .ThenByDescending(x => x.Count)
+                    .ThenBy(x => x.Path, StringComparer.OrdinalIgnoreCase)
                     .ToList(),
 
             "max" =>
-                statistics
-                    .OrderByDescending(x => x.Overall.Max)
-                    .ThenByDescending(x => x.TotalRequests)
-                    .ThenBy(x => x.Path)
+                aggregates
+                    .OrderByDescending(x => x.MaxMs)
+                    .ThenByDescending(x => x.Count)
+                    .ThenBy(x => x.Path, StringComparer.OrdinalIgnoreCase)
                     .ToList(),
 
             "path" =>
-                statistics
-                    .OrderBy(x => x.Path)
+                aggregates
+                    .OrderBy(x => x.Path, StringComparer.OrdinalIgnoreCase)
                     .ToList(),
 
             _ =>
-                statistics
-                    .OrderByDescending(x => x.TotalRequests)
-                    .ThenBy(x => x.Path)
+                aggregates
+                    .OrderByDescending(x => x.Count)
+                    .ThenBy(x => x.Path, StringComparer.OrdinalIgnoreCase)
                     .ToList()
         };
     }
 
     // =========================================================
-    // Build Statistics
+    // Build Statistics (only called for the Top N paths)
     // =========================================================
 
     private ApiStatisticsGroup BuildApiStatistics(
@@ -230,17 +274,27 @@ public class ApiStatisticsModel : PageModel
     }
 
     // =========================================================
-    // Load Available Years
+    // Load Available Years (cached — full-table scan is expensive
+    // on large tables and this data rarely changes second-to-second)
     // =========================================================
 
     private async Task LoadAvailableYearsAsync()
     {
-        AvailableYears = await _db.ApiLogs
+        if (_cache.TryGetValue(AvailableYearsCacheKey, out List<int>? cachedYears) && cachedYears is not null)
+        {
+            AvailableYears = cachedYears;
+            return;
+        }
+
+        var years = await _db.ApiLogs
             .AsNoTracking()
             .Select(x => x.CreatedAt.Year)
             .Distinct()
             .OrderByDescending(x => x)
             .ToListAsync();
+
+        _cache.Set(AvailableYearsCacheKey, years, AvailableYearsCacheTtl);
+        AvailableYears = years;
     }
 
     // =========================================================
@@ -277,8 +331,6 @@ public class ApiStatisticsModel : PageModel
 
     private void NormalizeFilters()
     {
-        Methods = ApiLogFilterService.NormalizeMethods(Methods);
-
         SortBy = SortBy?.Trim().ToLowerInvariant() ?? "frequency";
 
         var validSortValues = new[] { "frequency", "average", "min", "max", "path" };
@@ -315,6 +367,20 @@ public class ApiStatisticsModel : PageModel
         public string Path { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public long ElapsedMilliseconds { get; set; }
+    }
+
+    // =========================================================
+    // Cheap Per-Path Aggregate (computed in SQL, used for
+    // totals + sorting BEFORE the expensive detail build)
+    // =========================================================
+
+    private class PathAggregate
+    {
+        public string Path { get; set; } = string.Empty;
+        public int Count { get; set; }
+        public double AverageMs { get; set; }
+        public long MinMs { get; set; }
+        public long MaxMs { get; set; }
     }
 
     // =========================================================

@@ -41,7 +41,7 @@ public class ApisModel : PageModel
     public string? ResponseBody { get; set; }
 
     [BindProperty(SupportsGet = true)]
-    public List<string> Methods { get; set; } = new();
+    public string? Method { get; set; }
 
     [BindProperty(SupportsGet = true)]
     public string? StatusCodes { get; set; }
@@ -86,9 +86,6 @@ public class ApisModel : PageModel
     {
         PageNumber = PaginationService.ValidatePageNumber(PageNumber, int.MaxValue);
 
-        // Normalize methods
-        Methods = ApiLogFilterService.NormalizeMethods(Methods);
-
         // Build base query
         IQueryable<ApiLog> query = _db.ApiLogs.AsNoTracking();
 
@@ -98,7 +95,7 @@ public class ApisModel : PageModel
             FromDate = From,
             ToDate = To,
             Api = Api,
-            Methods = Methods,
+            Method = Method,
             StatusCodes = StatusCodes,
             RequestBody = RequestBody,
             ResponseBody = ResponseBody,

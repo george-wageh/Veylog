@@ -101,10 +101,20 @@
                         <div class="d-flex flex-wrap gap-2">
                             @foreach (var method in Model.AvailableMethods)
                             {
-                                var isChecked = Model.Methods.Contains(method, StringComparer.OrdinalIgnoreCase);
-                                <input type="checkbox" class="btn-check" name="Methods" value="@method"
-                                       id="method_@method" autocomplete="off" checked="@(isChecked ? "checked" : null)" />
-                                <label class="btn btn-outline-primary btn-sm rounded-pill px-3" for="method_@method">@method</label>
+                                var isChecked = string.Equals(Model.Method , method);
+
+                                <input type="radio"
+                                       class="btn-check"
+                                       name="Method"
+                                       value="@method"
+                                       id="method_@method"
+                                       autocomplete="off"
+                                       checked="@(isChecked ? "checked" : null)" />
+
+                                <label class="btn btn-outline-primary btn-sm rounded-pill px-3"
+                                       for="method_@method">
+                                    @method
+                                </label>
                             }
                         </div>
 
@@ -276,7 +286,7 @@
                                 @if (Model.PageNumber > 1)
                                 {
                                     <a class="page-link"
-                                       asp-page="/Apis"
+                                       asp-page="/Veylog/Apis"
                                        asp-route-pageNumber="1"
                                        asp-route-from="@Model.From?.ToString("yyyy-MM-ddTHH:mm")"
                                        asp-route-to="@Model.To?.ToString("yyyy-MM-ddTHH:mm")"
@@ -285,7 +295,7 @@
                                        asp-route-requestBody="@Model.RequestBody"
                                        asp-route-responseBody="@Model.ResponseBody"
                                        asp-route-statusCodes="@Model.StatusCodes"
-                                       asp-route-Methods="@Model.Methods">
+                                       asp-route-Method="@Model.Method">
 
                                         First
 
@@ -308,7 +318,7 @@
                                 @if (Model.PageNumber > 1)
                                 {
                                     <a class="page-link"
-                                       asp-page="/Apis"
+                                       asp-page="/Veylog/Apis"
                                        asp-route-pageNumber="@(Model.PageNumber - 1)"
                                        asp-route-from="@Model.From?.ToString("yyyy-MM-ddTHH:mm")"
                                        asp-route-to="@Model.To?.ToString("yyyy-MM-ddTHH:mm")"
@@ -317,7 +327,7 @@
                                        asp-route-requestBody="@Model.RequestBody"
                                        asp-route-responseBody="@Model.ResponseBody"
                                        asp-route-statusCodes="@Model.StatusCodes"
-                                       asp-route-Methods="@Model.Methods">
+                                       asp-route-Method="@Model.Method">
 
                                         Previous
 
@@ -350,7 +360,7 @@
                                 <li class="page-item">
 
                                     <a class="page-link"
-                                       asp-page="/Apis"
+                                       asp-page="/Veylog/Apis"
                                        asp-route-pageNumber="1"
                                        asp-route-from="@Model.From?.ToString("yyyy-MM-ddTHH:mm")"
                                        asp-route-to="@Model.To?.ToString("yyyy-MM-ddTHH:mm")"
@@ -359,7 +369,7 @@
                                        asp-route-requestBody="@Model.RequestBody"
                                        asp-route-responseBody="@Model.ResponseBody"
                                        asp-route-statusCodes="@Model.StatusCodes"
-                                       asp-route-Methods="@Model.Methods">
+                                       asp-route-Method="@Model.Method">
 
                                         1
 
@@ -389,7 +399,7 @@
                                 <li class="page-item @(pageNumber == Model.PageNumber ? "active" : "")">
 
                                     <a class="page-link"
-                                       asp-page="/Apis"
+                                       asp-page="/Veylog/Apis"
                                        asp-route-pageNumber="@pageNumber"
                                        asp-route-from="@Model.From?.ToString("yyyy-MM-ddTHH:mm")"
                                        asp-route-to="@Model.To?.ToString("yyyy-MM-ddTHH:mm")"
@@ -398,7 +408,7 @@
                                        asp-route-requestBody="@Model.RequestBody"
                                        asp-route-responseBody="@Model.ResponseBody"
                                        asp-route-statusCodes="@Model.StatusCodes"
-                                       asp-route-Methods="@Model.Methods">
+                                       asp-route-Method="@Model.Method">
 
                                         @pageNumber
 
@@ -425,7 +435,7 @@
                                 <li class="page-item">
 
                                     <a class="page-link"
-                                       asp-page="/Apis"
+                                       asp-page="/Veylog/Apis"
                                        asp-route-pageNumber="@Model.TotalPages"
                                        asp-route-from="@Model.From?.ToString("yyyy-MM-ddTHH:mm")"
                                        asp-route-to="@Model.To?.ToString("yyyy-MM-ddTHH:mm")"
@@ -434,7 +444,7 @@
                                        asp-route-requestBody="@Model.RequestBody"
                                        asp-route-responseBody="@Model.ResponseBody"
                                        asp-route-statusCodes="@Model.StatusCodes"
-                                       asp-route-Methods="@Model.Methods">
+                                       asp-route-Method="@Model.Method">
 
                                         @Model.TotalPages
 
@@ -451,7 +461,7 @@
                                 @if (Model.PageNumber < Model.TotalPages)
                                 {
                                     <a class="page-link"
-                                       asp-page="/Apis"
+                                       asp-page="/Veylog/Apis"
                                        asp-route-pageNumber="@(Model.PageNumber + 1)"
                                        asp-route-from="@Model.From?.ToString("yyyy-MM-ddTHH:mm")"
                                        asp-route-to="@Model.To?.ToString("yyyy-MM-ddTHH:mm")"
@@ -460,7 +470,7 @@
                                        asp-route-requestBody="@Model.RequestBody"
                                        asp-route-responseBody="@Model.ResponseBody"
                                        asp-route-statusCodes="@Model.StatusCodes"
-                                       asp-route-Methods="@Model.Methods">
+                                       asp-route-Method="@Model.Method">
 
                                         Next
 
@@ -483,7 +493,7 @@
                                 @if (Model.PageNumber < Model.TotalPages)
                                 {
                                     <a class="page-link"
-                                       asp-page="/Apis"
+                                       asp-page="/Veylog/Apis"
                                        asp-route-pageNumber="@Model.TotalPages"
                                        asp-route-from="@Model.From?.ToString("yyyy-MM-ddTHH:mm")"
                                        asp-route-to="@Model.To?.ToString("yyyy-MM-ddTHH:mm")"
@@ -492,7 +502,7 @@
                                        asp-route-requestBody="@Model.RequestBody"
                                        asp-route-responseBody="@Model.ResponseBody"
                                        asp-route-statusCodes="@Model.StatusCodes"
-                                       asp-route-Methods="@Model.Methods">
+                                       asp-route-Method="@Model.Method">
 
                                         Last
 

@@ -65,14 +65,27 @@
 
                     <!-- HTTP Methods (modern pill-style multi-select, no Ctrl needed) -->
                     <div class="col-md-6">
-                        <label class="form-label d-block">HTTP Method</label>
+                        <label class="form-label d-block">
+                            HTTP Method
+                        </label>
+
                         <div class="d-flex flex-wrap gap-2">
                             @foreach (var method in Model.AvailableMethods)
                             {
-                                var isChecked = Model.Methods.Contains(method, StringComparer.OrdinalIgnoreCase);
-                                <input type="checkbox" class="btn-check" name="Methods" value="@method"
-                                       id="method_@method" autocomplete="off" checked="@(isChecked ? "checked" : null)" />
-                                <label class="btn btn-outline-primary btn-sm rounded-pill px-3" for="method_@method">@method</label>
+                                var isChecked = string.Equals(Model.Method, method);
+
+                                <input type="radio"
+                                       class="btn-check"
+                                       name="Method"
+                                       value="@method"
+                                       id="method_@method"
+                                       autocomplete="off"
+                                       checked="@(isChecked ? "checked" : null)" />
+
+                                <label class="btn btn-outline-primary btn-sm rounded-pill px-3"
+                                       for="method_@method">
+                                    @method
+                                </label>
                             }
                         </div>
                     </div>

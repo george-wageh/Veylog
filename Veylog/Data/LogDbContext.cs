@@ -25,6 +25,23 @@ namespace Veylog
 
             modelBuilder.HasDefaultSchema("Veylog");
 
+            modelBuilder.Entity<ApiLog>()
+                .HasIndex(x => x.Path);
+
+            modelBuilder.Entity<ApiLog>()
+                .HasIndex(x => x.TraceId);
+
+            modelBuilder.Entity<ApiLog>()
+                .HasIndex(x => x.CreatedAt);
+
+            modelBuilder.Entity<ApiLog>()
+                .HasIndex(x => new { x.Path, x.CreatedAt });
+
+            modelBuilder.Entity<SqlLog>()
+                .HasIndex(x => x.TraceId);
+
+            modelBuilder.Entity<SqlLog>()
+                .HasIndex(x => x.CreatedAt);
         }
     }
     
