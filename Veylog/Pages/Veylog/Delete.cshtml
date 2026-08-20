@@ -1,0 +1,651 @@
+@page "/veylog/delete"
+@model Veylog.Pages.Veylog.DeleteModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+@{
+    ViewData["Title"] = "Delete Logs";
+}
+
+<div class="container-fluid">
+
+    <!-- =====================================================
+         Header
+         ===================================================== -->
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+
+        <h1>Delete Logs</h1>
+
+        <div>
+
+            <a href="/veylog"
+               class="btn btn-secondary">
+                Dashboard
+            </a>
+
+            <a href="/veylog/apis"
+               class="btn btn-primary">
+                API Requests
+            </a>
+
+            <a href="/veylog/sqls"
+               class="btn btn-dark">
+                SQL Calls
+            </a>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         Messages
+         ===================================================== -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show"
+             role="alert">
+
+            <strong>Success:</strong>
+
+            @TempData["SuccessMessage"]
+
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert">
+            </button>
+
+        </div>
+    }
+
+    @if (TempData["InfoMessage"] != null)
+    {
+        <div class="alert alert-info alert-dismissible fade show"
+             role="alert">
+
+            <strong>Info:</strong>
+
+            @TempData["InfoMessage"]
+
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="alert">
+            </button>
+
+        </div>
+    }
+
+
+    <!-- =====================================================
+         Warning
+         ===================================================== -->
+
+    <div class="alert alert-danger">
+
+        <strong>Warning:</strong>
+
+        Deleting logs is permanent.
+        Deleted logs cannot be recovered from this application.
+
+    </div>
+
+
+    <!-- =====================================================
+         Filter Card
+         ===================================================== -->
+
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-header">
+
+            <strong>Delete Filters</strong>
+
+        </div>
+
+
+        <div class="card-body">
+
+            <form method="post"
+                  asp-page-handler="Filter">
+
+                <div class="row g-3 align-items-end">
+
+                    <!-- =================================================
+                         Delete Type
+                         ================================================= -->
+
+                    <div class="col-md-4">
+
+                        <label asp-for="DeleteType"
+                               class="form-label">
+
+                            What do you want to delete?
+
+                        </label>
+
+                        <select asp-for="DeleteType"
+                                class="form-select">
+
+                            <option value="Both">
+                                API + SQL
+                            </option>
+
+                            <option value="Api">
+                                API Logs Only
+                            </option>
+
+                            <option value="Sql">
+                                SQL Logs Only
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- =================================================
+                         From Date
+                         ================================================= -->
+
+                    <div class="col-md-3">
+
+                        <label asp-for="FromDate"
+                               class="form-label">
+
+                            From Date
+
+                        </label>
+
+                        <input asp-for="FromDate"
+                               type="date"
+                               class="form-control" />
+
+                        <div class="form-text">
+                            Leave empty for no start date.
+                        </div>
+
+                    </div>
+
+
+                    <!-- =================================================
+                         To Date
+                         ================================================= -->
+
+                    <div class="col-md-3">
+
+                        <label asp-for="ToDate"
+                               class="form-label">
+
+                            To Date
+
+                        </label>
+
+                        <input asp-for="ToDate"
+                               type="date"
+                               class="form-control" />
+
+                        <div class="form-text">
+                            Leave empty for no end date.
+                        </div>
+
+                    </div>
+
+
+                    <!-- =================================================
+                         Apply
+                         ================================================= -->
+
+                    <div class="col-md-2">
+
+                        <button type="submit"
+                                class="btn btn-primary w-100">
+
+                            Apply Filter
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <!-- =================================================
+                     Validation
+                     ================================================= -->
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="alert alert-danger mt-3 mb-0">
+
+                        <strong>Please fix the following:</strong>
+
+                        <ul class="mb-0 mt-2">
+
+                            @foreach (var error in ViewData.ModelState.Values
+                                .SelectMany(x => x.Errors))
+                            {
+                                <li>
+                                    @error.ErrorMessage
+                                </li>
+                            }
+
+                        </ul>
+
+                    </div>
+                }
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         Matching Records
+         ===================================================== -->
+
+    <div class="row g-4 mb-4">
+
+        <!-- =================================================
+             API Count
+             ================================================= -->
+        @if (Model.DeleteType == "Api" ||
+                     Model.DeleteType == "Both")
+        {
+            <div class="col-md-4">
+
+                <div class="card shadow-sm h-100">
+
+                    <div class="card-body">
+
+                        <div class="d-flex justify-content-between
+                            align-items-center">
+
+                            <div>
+
+                                <h5 class="card-title mb-1">
+                                    API Logs
+                                </h5>
+
+                                <div class="text-muted">
+                                    Matching records
+                                </div>
+
+                            </div>
+
+                            <span class="badge bg-primary fs-6">
+
+                                @Model.ApiLogCount.ToString("N0")
+
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+        }
+
+
+        <!-- =================================================
+             SQL Count
+             ================================================= -->
+        @if (Model.DeleteType == "Sql" ||
+                     Model.DeleteType == "Both")
+        {
+            <div class="col-md-4">
+
+                <div class="card shadow-sm h-100">
+
+                    <div class="card-body">
+
+                        <div class="d-flex justify-content-between
+                            align-items-center">
+
+                            <div>
+
+                                <h5 class="card-title mb-1">
+                                    SQL Logs
+                                </h5>
+
+                                <div class="text-muted">
+                                    Matching records
+                                </div>
+
+                            </div>
+
+                            <span class="badge bg-dark fs-6">
+
+                                @Model.SqlLogCount.ToString("N0")
+
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+        }
+
+
+        <!-- =================================================
+             Total
+             ================================================= -->
+        @if (Model.DeleteType == "Both")
+        {
+            <div class="col-md-4">
+
+                <div class="card shadow-sm h-100">
+
+                    <div class="card-body">
+
+                        <div class="d-flex justify-content-between
+                            align-items-center">
+
+                            <div>
+
+                                <h5 class="card-title mb-1">
+                                    Total
+                                </h5>
+
+                                <div class="text-muted">
+                                    Matching records
+                                </div>
+
+                            </div>
+
+                            <span class="badge bg-danger fs-6">
+
+                                @Model.TotalLogCount.ToString("N0")
+
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+        }
+
+    </div>
+
+
+    <!-- =====================================================
+         Selected Filter Summary
+         ===================================================== -->
+
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-header">
+
+            <strong>Selected Filters</strong>
+
+        </div>
+
+        <div class="card-body">
+
+            <div class="row g-3">
+
+                <!-- Type -->
+
+                <div class="col-md-4">
+
+                    <div class="border rounded p-3">
+
+                        <div class="small text-muted">
+                            Delete Type
+                        </div>
+
+                        <div class="fw-bold">
+
+                            @if (Model.DeleteType == "Api")
+                            {
+                                <span>API Logs Only</span>
+                            }
+                            else if (Model.DeleteType == "Sql")
+                            {
+                                <span>SQL Logs Only</span>
+                            }
+                            else
+                            {
+                                <span>API + SQL</span>
+                            }
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- From -->
+
+                <div class="col-md-4">
+
+                    <div class="border rounded p-3">
+
+                        <div class="small text-muted">
+                            From Date
+                        </div>
+
+                        <div class="fw-bold">
+
+                            @(Model.FromDate?.ToString("yyyy-MM-dd")
+                                ?? "Beginning")
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- To -->
+
+                <div class="col-md-4">
+
+                    <div class="border rounded p-3">
+
+                        <div class="small text-muted">
+                            To Date
+                        </div>
+
+                        <div class="fw-bold">
+
+                            @(Model.ToDate?.ToString("yyyy-MM-dd")
+                                ?? "Now")
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         Delete Card
+         ===================================================== -->
+
+    <div class="card shadow-sm border-danger">
+
+        <div class="card-header bg-danger text-white">
+
+            <strong>
+                Permanently Delete Matching Logs
+            </strong>
+
+        </div>
+
+
+        <div class="card-body">
+
+            <div class="d-flex flex-column flex-md-row
+                justify-content-between
+                align-items-md-center
+                gap-4">
+
+                <!-- Information -->
+
+                <div>
+
+                    <h5 class="text-danger mb-2">
+
+                        Delete Selected Logs
+
+                    </h5>
+
+                    <p class="text-muted mb-2">
+
+                        The following records will be permanently
+                        removed from the database:
+
+                    </p>
+
+
+                    <ul class="mb-0">
+
+                        @if (Model.DeleteType == "Api" ||
+                             Model.DeleteType == "Both")
+                        {
+                            <li>
+
+                                <strong>
+                                    @Model.ApiLogCount.ToString("N0")
+                                </strong>
+
+                                API log(s)
+
+                            </li>
+                        }
+
+
+                        @if (Model.DeleteType == "Sql" ||
+                             Model.DeleteType == "Both")
+                        {
+                            <li>
+
+                                <strong>
+                                    @Model.SqlLogCount.ToString("N0")
+                                </strong>
+
+                                SQL log(s)
+
+                            </li>
+                        }
+
+                    </ul>
+
+                </div>
+
+
+                <!-- Delete -->
+
+                <div>
+
+                    <form method="post"
+                          asp-page-handler="Delete"
+                          onsubmit="return confirmDelete();">
+
+                        <input type="hidden"
+                               asp-for="DeleteType" />
+
+                        <input type="hidden"
+                               asp-for="FromDate" />
+
+                        <input type="hidden"
+                               asp-for="ToDate" />
+
+
+                        <button type="submit"
+                                class="btn btn-danger btn-lg"
+                            @(Model.TotalLogCount == 0
+                                    ? "disabled"
+                                    : "")>
+
+                            Delete Selected Logs
+
+                        </button>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+@section Scripts {
+
+    <script>
+
+        function confirmDelete() {
+
+            const deleteType = '@Model.DeleteType';
+
+            const apiCount = @Model.ApiLogCount;
+            const sqlCount = @Model.SqlLogCount;
+            const totalCount = apiCount + sqlCount;
+
+            let message = '';
+
+            if (deleteType === 'Api') {
+
+                message =
+                    'WARNING!\n\n' +
+                    'You are about to permanently delete ' +
+                    apiCount.toLocaleString() +
+                    ' API log(s).\n\n' +
+                    'This action cannot be undone.\n\n' +
+                    'Are you sure you want to continue?';
+
+            }
+            else if (deleteType === 'Sql') {
+
+                message =
+                    'WARNING!\n\n' +
+                    'You are about to permanently delete ' +
+                    sqlCount.toLocaleString() +
+                    ' SQL log(s).\n\n' +
+                    'This action cannot be undone.\n\n' +
+                    'Are you sure you want to continue?';
+
+            }
+            else {
+
+                message =
+                    'WARNING!\n\n' +
+                    'You are about to permanently delete ' +
+                    totalCount.toLocaleString() +
+                    ' log(s).\n\n' +
+                    apiCount.toLocaleString() +
+                    ' API log(s)\n' +
+                    sqlCount.toLocaleString() +
+                    ' SQL log(s)\n\n' +
+                    'This action cannot be undone.\n\n' +
+                    'Are you absolutely sure you want to continue?';
+
+            }
+
+            return window.confirm(message);
+        }
+
+    </script>
+
+}
