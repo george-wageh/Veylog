@@ -1,6 +1,6 @@
 # Veylog
 
-![Veylog](https://img.shields.io/badge/Version-1.0.0-blue)
+![Veylog](https://img.shields.io/badge/Version-1.0.4-blue)
 ![.NET](https://img.shields.io/badge/.NET-7.0%20%7C%208.0%20%7C%209.0%20%7C%2010.0-green)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -85,18 +85,34 @@ Veylog is a comprehensive logging and monitoring library for ASP.NET Core applic
 
 ---
 
+## What's New in Version 1.0.4
+
+### 1. Delete Old SQL and API Logs
+- Added a delete page for removing old SQL logs and API logs.
+- This makes log-data cleanup easier and helps control database growth.
+
+### 2. Pagination Bug Fixes
+- Fixed pagination issues affecting log pages.
+- Improved page navigation and handling of pagination state.
+
+### 3. Statistics Page Performance Improvements
+- Improved the performance of the Statistics page.
+- Optimized statistics processing to make daily, monthly, and yearly reports faster and more responsive.
+
+---
+
 ## Installation
 
 ### Using NuGet Package Manager
 
 ```powershell
-Install-Package Veylog
+Install-Package Veylog -Version 1.0.4
 ````
 
 ### Using .NET CLI
 
 ```bash
-dotnet add package Veylog
+dotnet add package Veylog --version 1.0.4
 ```
 
 ---
@@ -106,7 +122,7 @@ dotnet add package Veylog
 ### Step 1: Install the Package
 
 ```bash
-dotnet add package Veylog
+dotnet add package Veylog --version 1.0.4
 ```
 
 ### Step 2: Configure Services
